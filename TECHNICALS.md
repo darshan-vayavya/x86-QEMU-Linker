@@ -67,20 +67,6 @@ Virtual memory is a system in which the physical memory is abstracted into a lar
 
 To build the final **bare-metal binary** for your x86 system using **GCC**, you can simply use the [Makefile](Makefile) provided in the project.
 
-3. **Linking:**
-   - The object files are linked together with the provided **linker script** using the **GNU linker (`ld`)**:
-
-     ```bash
-     ld -T x86D.ld -o x86-bare.bin start.o main.o
-     ```
-
-4. **Running on QEMU:**
-   - Once the binary (`kernel.bin`) is created, it can be run on QEMU with the following command:
-
-     ```bash
-     qemu-system-x86_64 -drive format=raw,file=kernel.bin
-     ```
-
 ## 7. Conclusion
 
 The process outlined in this documentation allows you to create a **bare-metal system** for the **x86 architecture** that runs on **QEMU**. It covers the initialization of the system's hardware, the switch to **64-bit long mode**, the setup of the **Global Descriptor Table (GDT)**, and the allocation of **stack**, **heap**, and **free memory**. The system is built using **GCC** for compiling both **assembly** and **C** code, with a **linker script** to manage memory layout and section placement. Finally, the system is capable of interacting with peripherals like the **xHCI** through **memory-mapped I/O** regions.
