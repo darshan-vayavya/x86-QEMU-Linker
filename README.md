@@ -35,7 +35,7 @@ The project explores getting bare-metal C code to run on x86 system using [QEMU]
 
 - The code is built in steps - where the main is built as an [object](https://en.wikipedia.org/wiki/Object_file), then linked together using the linker and the startup code.
 
-- Finally, everything is properly built and a *x86-bare.bin* image is created. This image can now be run on QEMU.
+- Finally, everything is properly built and a *x86-bare.dsp* image is created. This image can now be run on QEMU.
 
 ## Running on QEMU
 
