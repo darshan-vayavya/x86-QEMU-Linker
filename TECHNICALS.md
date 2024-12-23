@@ -65,21 +65,7 @@ Virtual memory is a system in which the physical memory is abstracted into a lar
 
 ## 6. **GCC and Building the Bare-Metal System**
 
-To build the final **bare-metal binary** for your x86 system using **GCC**, the following steps are followed:
-
-1. **Assembly Compilation:**
-   - The assembly code (`start.asm`) is compiled to an object file using the **GCC assembler** or **GNU assembler (`as`)**. The command is:
-
-     ```bash
-     gcc -ffreestanding -c start.a -o start.o
-     ```
-
-2. **C Compilation:**
-   - Your user-defined C code (e.g., `main.c`) is compiled into an object file:
-
-     ```bash
-     gcc -ffreestanding -c main.c -o main.o
-     ```
+To build the final **bare-metal binary** for your x86 system using **GCC**, you can simply use the [Makefile](Makefile) provided in the project.
 
 3. **Linking:**
    - The object files are linked together with the provided **linker script** using the **GNU linker (`ld`)**:
