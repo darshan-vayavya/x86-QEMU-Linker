@@ -12,14 +12,13 @@ The system will use **1GB of RAM**, and this RAM will be allocated across differ
 
 The **linker script** is essential for defining how the compiled code should be laid out in memory. It ensures that sections like `.text`, `.data`, `.bss`, the **stack**, and **heap** are placed at the right locations. Here's the key breakdown of the memory layout:
 
-- **Program Start (0x100000):** The program begins at `0x100000` (1MB) to allow for any BIOS or bootloader requirements.
+- **Program Start (0x200000):** The program begins at `0x200000` (2MB) to allow for any BIOS or bootloader requirements.
 - **.text Section:** This section contains the executable code of the program. It starts right after the program's initial memory layout at the defined start address.
 - **.data Section:** Initialized global variables are stored in this section.
 - **.rodata Section:** Read-only data, such as constants and strings, are stored here.
 - **.bss Section:** This section holds uninitialized global variables. At runtime, these are initialized to zero.
 - **Stack:** A **kernel stack** is allocated at a predefined location. It typically starts after the `.bss` section and is sized based on your needs (e.g., **8KB**).
 - **Heap:** The **heap** follows the stack and is used for dynamic memory allocation during the program's execution. It is usually a large section and can be allocated a fixed amount (e.g., **1MB**).
-- **Free Memory:** The remaining memory is reserved as **free RAM**, and the system is configured to ensure that it does not overlap with the heap or stack.
 
 This structure is designed so that the kernel code can be loaded into the first 1MB of memory, leaving space for dynamic allocations and peripherals.
 
@@ -66,6 +65,16 @@ Virtual memory is a system in which the physical memory is abstracted into a lar
 ## 6. **GCC and Building the Bare-Metal System**
 
 To build the final **bare-metal binary** for your x86 system using **GCC**, you can simply use the [Makefile](Makefile) provided in the project.
+
+## 7. **Running on QEMU**
+
+The included script [createBootable.sh](createBootable.sh) creates a ***boot.img*** file with grub on it (ensure you have grub installed, which is present on most linux systems by default). It also mounts your executable binary on it and once the script runs, your boot.img is ready to be used.
+
+To run it, you can simply run **make run** or use the following command:
+
+```bash
+qemu-system-x86_64 -drive file=boot.img,format=raw -m 512M -smp 1 -cpu qemu64 -no-reboot -serial mon:stdio -s -S -device qemu-xhci,addr=01.5
+```
 
 ## 7. Conclusion
 
