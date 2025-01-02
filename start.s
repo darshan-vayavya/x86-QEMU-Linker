@@ -1,91 +1,99 @@
-; Assembly code for x86 Machine start code.
-; Author: Darshan(@thisisthedarshan) <darshanp@vayavyalabs.com>
-; This assembly code is used to boot the bare-metal QEMU system to enable us to
-; run custom C code.
-; The C code is generated using GCC's x86 build tools. The Makefile is included
-; to build the binaries that can be run on QEMU's x86 system
-; The project assumes a RAM space of 1GB
+.set ALIGN,    1<<0             /* align loaded modules on page boundaries */
+.set MEMINFO,  1<<1             /* provide memory map */
+.set FLAGS,    ALIGN | MEMINFO  /* this is the Multiboot 'flag' field */
+.set MAGIC,    0x1BADB002       /* 'magic number' lets bootloader find the header */
+.set CHECKSUM, -(MAGIC + FLAGS) /* checksum of above, to prove we are multiboot */
+.set XHCI_ADDR, 0x07690
 
+.section .multiboot
+.align 4
+.global _boot_grub
+_boot_grub:
+    .long MAGIC
+    .long FLAGS
+    .long CHECKSUM
 
-    .global _start
+.section .bss
+.align 16
+stack_bottom:
+.skip 16384 # 16 KiB
+stack_top:
 
-    ; Define constants 
-    %define GDT_ENTRY_COUNT 3
-    %define GDT_BASE 0x1000            /* GDT base address */
-    %define GDT_LIMIT 0xFFFF          /* GDT limit (64KB max for GDT) */
-    %define KERNEL_STACK_SIZE 0x2000  /* 8KB Stack size */
-    %define KERNEL_HEAP_SIZE 0x100000 /* 1MB Heap size */
-    %define RAM_SIZE 0x40000000       /* 1GB of RAM */
-
-    ; 64-bit entry point 
-    .section .text
+.section .text
+.global _start
+.code32            
 _start:
-    ; Initialize GDT 
-    call init_gdt
+    cli                       # Disable interrupts
+    xor %ax, %ax              # Zero AX register
+    mov %ax, %ds              # Set data segment
+    mov %ax, %es              # Set extra segment
+    # mov $0x7000, %ax        # Load 0x7000 into AX
+    # mov %ax, %ss              # Move the value in AX to the stack segment
 
-    ; Load GDT 
-    lgdt [gdt_descriptor]
+    lgdt gdt_descriptor       # Load GDT
+    mov %cr0, %eax            # Move CR0 into EAX
+    or $0x1, %eax             # Set the PE bit (bit 0) for protected mode
+    mov %eax, %cr0            # Write EAX back to CR0
 
-    ; Switch to long mode 
-    call switch_to_long_mode
+    mov $0x10, %ax            # Data segment selector
+    mov %ax, %ds
+    mov %ax, %es
+    mov %ax, %fs
+    mov %ax, %gs
+    mov %ax, %ss
 
-    ; Initialize stack and heap 
-    call init_stack
+    # Enable long mode without enabling paging
+    movl $0xC0000080, %ecx    # Load EFER MSR index
+    rdmsr                     # Read EFER
+    orl $0x00000100, %eax     # Set LME (long mode enable) bit
+    wrmsr                     # Write EFER
 
-    ; Jump to main function 
+    mov %cr4, %eax            # Move CR4 into EAX
+    or $0x20, %eax            # Set PAE bit (Physical Address Extension)
+    mov %eax, %cr4            # Write EAX back to CR4
+
+    ljmp $0x08, $long_mode_start  # Far jump to 64-bit long mode
+
+
+.code64                       # 64-bit long mode
+.align 4
+long_mode_start:
+    mov $__stack_top, %rsp    # Set the stack pointer to the top of the 16KB stack (64-bit mode)
+    
+    # Load data segment selectors for 64-bit mode (not really used, but here for completeness)
+    mov $0x10, %rax           # Data segment selector (64-bit)
+    mov %rax, %ds
+    mov %rax, %es
+    mov %rax, %fs
+    mov %rax, %gs
+    
+    # Map xHCI Base Address to XHCI_ADDR (Updated to use 01:5 bus address)
+    movl $0x8001A010, %eax     # Update with the 01:5 bus address -  0x80000000 | (1 << 16) | (5 << 11) | (0 << 8) | 0x10
+    mov $0xCF8, %dx            # Load CONFIG_ADDRESS port into DX
+    outl %eax, %dx             # Write to CONFIG_ADDRESS port
+
+    movl $XHCI_ADDR, %eax      # The new MMIO base address
+    mov $0xCFC, %dx            # Load CONFIG_DATA port into DX
+    outl %eax, %dx             # Write the MMIO base address to CONFIG_DATA port
+
+    # Debugging
+    mov $main, %rax           # Load the address of `main` into RAX
+    mov %rax, %rbx            # Copy it to RBX for inspection
+
+    # Jump to main
     call main
 
-    ; Infinite loop to keep the system running 
-    hang:
-        jmp hang
+    # Infinite loop (hang)
+hang:
+    jmp hang
 
-    ; GDT setup function 
-init_gdt:
-    ; GDT descriptor setup 
-    lidt [gdt_descriptor]   ; Load GDT descriptor 
+.section .data
+gdt:
+    .quad 0x0000000000000000  # Null descriptor
+    .quad 0x00AF9A000000FFFF  # Code segment (32-bit)
+    .quad 0x00AF92000000FFFF  # Data segment (32-bit)
 
-    ; GDT Table 
-    ; GDT entry 0: Null descriptor (unused)
-    dq 0x0000000000000000
-    ; GDT entry 1: Code segment (kernel code, ring 0, 64-bit)
-    dq 0x00CF9A000000FFFF
-    ; GDT entry 2: Data segment (kernel data, ring 0, 64-bit)
-    dq 0x00CF92000000FFFF
-
-    ; GDT descriptor (limit, base address) 
 gdt_descriptor:
-    dw GDT_LIMIT & 0xFFFF       /* Limit low */
-    dw (GDT_BASE & 0xFFFF)      /* Base low */
-    db (GDT_BASE >> 16) & 0xFF  /* Base middle byte */
-    db 0x00                     /* Access byte (ignore for now) */
-    db 0x00                     /* Granularity byte (ignore for now) */
-    db (GDT_BASE >> 24) & 0xFF  /* Base high byte */
-
-    ret
-
-; Switch to long mode (64-bit mode) 
-switch_to_long_mode:
-    ; Set 64-bit mode flag in EFLAGS (EFER.LME = 1)
-    mov eax, cr0
-    or eax, 0x80000000     ; Set the long mode flag (bit 31) in CR0
-    mov cr0, eax
-
-    ; Enable paging and 64-bit mode
-    mov eax, 0xC0000080   ; MSR for EFER
-    rdmsr
-    or eax, 0x00000100    ; Enable long mode (EFER.LME = 1)
-    wrmsr
-
-    ; Switch to 64-bit mode (requires a jump to a 64-bit address)
-    jmp 0x08:long_mode     ; Far jump to 64-bit code segment
-
-long_mode:
-    ; Now in 64-bit mode (long mode), continue initialization
-    ret
-
-; Initialize stack for the kernel 
-init_stack:
-    ; Setup stack pointer for the kernel
-    mov rsp, 0x2000        ; Set the stack pointer to the top of the kernel stack (8KB)
-
-    ret
+    .word (gdt_end - gdt - 1) # GDT size (limit)
+    .long gdt                 # GDT base address
+gdt_end:

@@ -16,15 +16,18 @@ OUTPUT = x86-bare.dsp
 # Compiler and tools
 CC = gcc
 LD = ld
-OBJCOPY = objcopy
 QEMU = qemu-system-x86_64
+AS = as
 
 # Compiler flags
-CFLAGS = -ffreestanding -fno-PIE -nostartfiles -nostdlib -Wall -O2 -m64 -ggdb3
-LDFLAGS = -m elf_x86_64 -T x86D.ld -o $(OUTPUT)
+CFLAGS = -ffreestanding -fcf-protection=none -mno-shstk -fno-PIE -nostartfiles -nostdlib -Wall -O2 -m64 -ggdb3 -std=gnu99
+LDFLAGS = -m elf_x86_64 -O2 -nostdlib -g -T x86D.ld -o $(OUTPUT)
+ASFLAGS = -ggdb3 --64 $(ASM_SRC) -o $(ASM_OBJ)
+
 
 # Default target to build the binary
 all: $(OUTPUT)
+	bash createBootable.sh
 
 # Rule to compile assembly file into an object file
 $(ASM_OBJ): $(ASM_SRC)
@@ -40,7 +43,7 @@ $(OUTPUT): $(ASM_OBJ) $(C_OBJ)
 
 # Run the final image using QEMU
 run: $(OUTPUT)
-	$(QEMU) -kernel $(OUTPUT) -device pci-xhci,addr=00.0,mmio=0xED69420 -m 1G -bios none -cpu qemu64 -smp 1 -no-reboot
+	$(QEMU) -kernel $(OUTPUT) -device pci-xhci,addr=00.0 -m 1G -cpu qemu64 -smp 1 -no-reboot
 
 # Clean up the generated files
 clean:
