@@ -12,12 +12,20 @@ C_OBJ = $(C_SRC:.c=.o)       # Convert .c files to .o files
 
 # Output binary
 OUTPUT = x86-bare.dsp
+BOOT_IMG = boot.img
 
 # Compiler and tools
 CC = gcc
 LD = ld
-QEMU = qemu-system-x86_64
 AS = as
+
+# QEMU and Its Arguments
+QEMU = qemu-system-x86_64
+MEM = 1G # For 1 GB Memory
+CORES = 1 # For single core - max 4 cores recommended
+QEMU_GDB = -s -S # GDB Flags - No need to keep if not required
+XHCI_PCI_ADDR = 01.5 # Bus 01, Device 5
+
 
 # Compiler flags
 CFLAGS = -ffreestanding -fcf-protection=none -mno-shstk -fno-PIE -nostartfiles -nostdlib -Wall -O2 -m64 -ggdb3 -std=gnu99
@@ -43,7 +51,7 @@ $(OUTPUT): $(ASM_OBJ) $(C_OBJ)
 
 # Run the final image using QEMU
 run: $(OUTPUT)
-	$(QEMU) -kernel $(OUTPUT) -device pci-xhci,addr=00.0 -m 1G -cpu qemu64 -smp 1 -no-reboot
+	$(QEMU) -drive file=$(BOOT_IMG),format=raw -m $(MEM) -smp $(CORES) -cpu qemu64 -no-reboot -serial mon:stdio $(QEMU_GDB) -device qemu-xhci,addr=$(XHCI_PCI_ADDR)
 
 # Clean up the generated files
 clean:
