@@ -50,3 +50,14 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
+
+# VS Code Ignore
+.vscode/
+
+# isodir
+isodir/
+
+# Boot Images
+boot*.*
+kernel*
+*.dsp
