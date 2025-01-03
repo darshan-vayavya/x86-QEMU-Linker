@@ -38,6 +38,8 @@ EOF
   sudo grub-install --target=i386-pc --boot-directory=/mnt/boot/boot --no-floppy /dev/loop69
   # Write config
   sudo bash -c 'cat > /mnt/boot/boot/grub/grub.cfg <<EOF
+set default=0
+set timeout=0
 menuentry "DSPs Bare-Metal Kernel" {
     multiboot /boot/x86-bare.dsp
 }
