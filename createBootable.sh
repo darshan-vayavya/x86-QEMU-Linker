@@ -2,7 +2,7 @@
 #
 # Check if boot.img exists or not. If it does not, create a new one
 if [ -f "boot.img" ]; then
-  echo ""
+  echo "Found boot.img"
 else
   echo "boot.img does not exist. Creating a new one"
   # Create a blank disk of size 10 MB
