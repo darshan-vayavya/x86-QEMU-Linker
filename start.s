@@ -3,7 +3,38 @@
 .set FLAGS,    ALIGN | MEMINFO  /* this is the Multiboot 'flag' field */
 .set MAGIC,    0x1BADB002       /* 'magic number' lets bootloader find the header */
 .set CHECKSUM, -(MAGIC + FLAGS) /* checksum of above, to prove we are multiboot */
-.set XHCI_ADDR, 0x07690
+.set XHCI_ADDR, 0x69420
+
+.set PCI_CONFIG_ADDRESS, 0xCF8
+.set PCI_CONFIG_DATA,    0xCFC
+.set PCI_BAR_0_OFFSET,   0x10
+.set PCI_BAR_1_OFFSET,   0x14
+
+.set PCI_BUS_SHIFT,      16      /* Precomputed shifts */
+.set PCI_DEVICE_SHIFT,   11
+.set PCI_FUNCTION_SHIFT, 8
+.set PCI_BUS_NUMBER,     0x10000 /* 1 shifted left by 16 */
+.set PCI_DEVICE_NUMBER,  0x2800 /* 5 shifted left by 11 */
+.set PCI_FUNCTION_NUMBER, 0x00 /* 0 shifted left by 8 */
+
+/* Macro to write to PCI register */
+.macro write_pci_register reg_offset, value
+    /* Compute PCI address in EAX */
+    movl 0x80000000, %eax                /* Set the enable bit (bit 31) */
+    orl PCI_BUS_NUMBER, %eax             /* Add precomputed bus number */
+    orl PCI_DEVICE_NUMBER, %eax          /* Add precomputed device number */
+    orl PCI_FUNCTION_NUMBER, %eax        /* Add precomputed function number */
+    orl \reg_offset, %eax                 /* Add register offset */
+    andl $0xFFFFFFFC, %eax                /* Mask lower two bits (alignment) */
+    movw PCI_CONFIG_ADDRESS, %dx
+    outl %eax, %dx                        /* Write to PCI CONFIG_ADDRESS */
+
+    /* Write the value to PCI CONFIG_DATA */
+    movl \value, %eax
+    movw PCI_CONFIG_DATA, %dx
+    outl %eax, %dx
+.endm
+
 
 .section .multiboot
 .align 4
@@ -13,11 +44,11 @@ _boot_grub:
     .long FLAGS
     .long CHECKSUM
 
-.section .bss
-.align 16
-stack_bottom:
-.skip 16384 # 16 KiB
-stack_top:
+# .section .bss
+# .align 16
+# stack_bottom:
+# .skip 16384 # 16 KiB
+# stack_top:
 
 .section .text
 .global _start
@@ -27,8 +58,8 @@ _start:
     xor %ax, %ax              # Zero AX register
     mov %ax, %ds              # Set data segment
     mov %ax, %es              # Set extra segment
-    # mov $0x7000, %ax        # Load 0x7000 into AX
-    # mov %ax, %ss              # Move the value in AX to the stack segment
+    mov $__stack_top, %esp
+	xor %ebp, %ebp              # Cleanup Stack
 
     lgdt gdt_descriptor       # Load GDT
     mov %cr0, %eax            # Move CR0 into EAX
@@ -59,6 +90,7 @@ _start:
 .align 4
 long_mode_start:
     mov $__stack_top, %rsp    # Set the stack pointer to the top of the 16KB stack (64-bit mode)
+	xor %rbp, %rbp              # Cleanup Stack
     
     # Load data segment selectors for 64-bit mode (not really used, but here for completeness)
     mov $0x10, %rax           # Data segment selector (64-bit)
@@ -67,17 +99,30 @@ long_mode_start:
     mov %rax, %fs
     mov %rax, %gs
     
-    # Map xHCI Base Address to XHCI_ADDR (Updated to use 01:5 bus address)
-    movl $0x8001A010, %eax     # Update with the 01:5 bus address -  0x80000000 | (1 << 16) | (5 << 11) | (0 << 8) | 0x10
-    mov $0xCF8, %dx            # Load CONFIG_ADDRESS port into DX
-    outl %eax, %dx             # Write to CONFIG_ADDRESS port
+    
+    # Write XHCI_ADDR to BAR0
+    write_pci_register PCI_BAR_0_OFFSET, XHCI_ADDR
 
-    movl $XHCI_ADDR, %eax      # The new MMIO base address
-    mov $0xCFC, %dx            # Load CONFIG_DATA port into DX
-    outl %eax, %dx             # Write the MMIO base address to CONFIG_DATA port
+    # Clear BAR1 (optional, depending on your configuration)
+    # write_pci_register PCI_BAR_1_OFFSET, 0x0
+
+    # Verify MMIO mapping by writing and reading back
+    movl $XHCI_ADDR, %eax         # Load MMIO base address into %rax
+    movb $0x7D, (%rax)            # Write a test value to MMIO
+    movb (%rax), %al              # Read back the value
+    cmpb 0x7D, %al                # Compare to ensure mapping succeeded
+    je success
+
+    # If mapping fails, indicate error
+    movq 0xB8000, %rax           # VGA text mode address
+    movw $0x4F58, (%rax)         # Red 'X'
+    # hlt
+
+success:
+    # extern main
 
     # Debugging
-    mov $main, %rax           # Load the address of `main` into RAX
+    mov main, %rax            # Load the address of `main` into RAX
     mov %rax, %rbx            # Copy it to RBX for inspection
 
     # Jump to main
