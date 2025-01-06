@@ -4,7 +4,8 @@
 .set MAGIC,    0x1BADB002       # 'magic number' lets bootloader find the header
 .set CHECKSUM, -(MAGIC + FLAGS) # checksum of above, to prove we are multiboot
 
-.set XHCI_ADDR, 0x0ED69420
+.align 16
+.set XHCI_ADDR, 0x00F0C0
 
 .section .multiboot
 .align 4
@@ -23,7 +24,7 @@ _start:
     xor %ebp, %ebp             # Clear EBP
     mov $__stack_top, %esp     # Set up the stack
 
-    lgdt gdt_descriptor_32        # Load the GDT
+    lgdt gdt_descriptor_64        # Load the GDT
 
     # Enable protected mode
     mov %cr0, %eax
@@ -47,41 +48,43 @@ _start:
     or $0x20, %eax             # Enable PAE (Physical Address Extension)
     mov %eax, %cr4
 
-    # Far jump to long mode
-    ljmp $0x08, $long_mode_start
-
 .code64
-long_mode_start:
     mov $__stack_top, %rsp     # Set up 64-bit stack
     xor %rbp, %rbp
 
-    lgdt gdt_descriptor_64        # Load the GDT
+    mov $XHCI_ADDR, %eax        # Load XHCI_ADDR (0xED69420)
+
+    # lgdt gdt_descriptor_64        # Load the GDT
 
     # PCI memory mapping for xHCI device at PCI address 01.5
     # Set up PCI Configuration Address to access the PCI device at 01.5
-    mov $0x80001000, %eax      # PCI device address for 01.5 (0x80001000)
-    mov 0xCF8, %dx            # PCI configuration address register
-    out %al, %dx               # Write the lower 8 bits to PCI_CONFIG_ADDRESS
+    mov $0x80001000, %rax      # PCI device address for 01.5 (0x80001000)
+    movw $0xCF8, %dx            # PCI configuration address register
+    out %eax, %dx              # Write full 32 bits to PCI_CONFIG_ADDRESS
 
-    # Read the BAR0 from PCI configuration space
-    mov $0x10, %ebx            # BAR 0 offset (the address for the device)
-    mov $0xCFC, %dx            # PCI configuration data register
-    in %dx, %eax               # Read from PCI_CONFIG_DATA (BAR0)
+    movw $0xCFC, %dx            # PCI configuration data register
+    inl %dx, %eax               # Read 32-bit data from PCI_CONFIG_DATA into %eax
+    movl %eax, %eax             # (Optional) Ensure %eax is treated as 32 bits
     
     # Assuming BAR0 is memory-mapped and we want to set XHCI_ADDR to the value
     # of BAR0 (which is where we can access the xHCI device MMIO space)
-    mov %eax, XHCI_ADDR        # Store the value into XHCI_ADDR
+    mov $XHCI_ADDR, %rbx
+    mov %rax, (%rbx)        # Store the value into XHCI_ADDR
 
     # Example: Write data to the xHCI MMIO address (0xED69420)
-    mov $0x1000, %eax          # Some data to write
-    mov XHCI_ADDR, %ecx        # Load XHCI_ADDR (0xED69420)
-    mov %eax, (%ecx)           # Write data to the xHCI MMIO address
+    mov $0x1000, %rax          # Some data to write
+    mov $XHCI_ADDR, %rcx        # Load XHCI_ADDR (0xED69420)
+    mov %rax, (%rcx)           # Write data to the xHCI MMIO address
 
     # Read the value back from xHCI MMIO to verify (same address)
-    mov XHCI_ADDR, %ecx        # Load XHCI_ADDR again
-    mov (%ecx), %eax           # Read the value from the xHCI MMIO address
-    cmp $0x1000, %eax          # Compare with expected value
-    # Call C main function
+    mov $XHCI_ADDR, %rcx        # Load XHCI_ADDR again
+    mov (%rcx), %rax           # Read the value from the xHCI MMIO address
+    cmp $0x1000, %rax          # Compare with expected value
+
+    ljmp $0x08, $start_main
+    
+# Call C main function
+start_main:
     call main
     hlt
 
