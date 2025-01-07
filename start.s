@@ -63,6 +63,10 @@ _xHCI_mmio_read:
     movw $0xCFC, %dx            # PCI configuration data register
     inl %dx, %eax               # Read 32-bit data from PCI_CONFIG_DATA into %eax
 
+_xHCI_HCSPARAMS1_read:
+    add $0x04, %eax             # HCSPARAMS1 is at BASE+04H
+    mov (%eax), %ebx           # Read HCSPARAMS1 register value
+
 _xHCI_mmio_map:
     # Step 3: Write the new MMIO base address (0xED69420) to BAR0
     movl $XHCI_ADDR, %eax       # New MMIO base address (aligned to 16 bytes)
