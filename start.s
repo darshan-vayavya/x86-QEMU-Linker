@@ -49,39 +49,41 @@ _start:
     mov %eax, %cr4
 
 .code64
+_code_64:
     mov $__stack_top, %rsp     # Set up 64-bit stack
     xor %rbp, %rbp
 
-    mov $XHCI_ADDR, %eax        # Load XHCI_ADDR (0xED69420)
-
-    # lgdt gdt_descriptor_64        # Load the GDT
-
-    # PCI memory mapping for xHCI device at PCI address 01.5
-    # Set up PCI Configuration Address to access the PCI device at 01.5
-    mov $0x80001000, %rax      # PCI device address for 01.5 (0x80001000)
+_xHCI_mmio_read:
+     # Step 1: Write to PCI Configuration Address Register to access BAR0
+    movl $0x80001010, %eax      # 0x80000000 | (Bus=0 << 16) | (Device=1 << 11) | (Function=5 << 8) | BAR0 offset (0x10)
     movw $0xCF8, %dx            # PCI configuration address register
-    out %eax, %dx              # Write full 32 bits to PCI_CONFIG_ADDRESS
+    outl %eax, %dx              # Write full 32 bits to PCI_CONFIG_ADDRESS
 
+    # Step 2: Read the current BAR0 value
     movw $0xCFC, %dx            # PCI configuration data register
     inl %dx, %eax               # Read 32-bit data from PCI_CONFIG_DATA into %eax
-    movl %eax, %eax             # (Optional) Ensure %eax is treated as 32 bits
-    
-    # Assuming BAR0 is memory-mapped and we want to set XHCI_ADDR to the value
-    # of BAR0 (which is where we can access the xHCI device MMIO space)
-    mov $XHCI_ADDR, %rbx
-    mov %rax, (%rbx)        # Store the value into XHCI_ADDR
 
-    # Example: Write data to the xHCI MMIO address (0xED69420)
-    mov $0x1000, %rax          # Some data to write
-    mov $XHCI_ADDR, %rcx        # Load XHCI_ADDR (0xED69420)
-    mov %rax, (%rcx)           # Write data to the xHCI MMIO address
+_xHCI_mmio_map:
+    # Step 3: Write the new MMIO base address (0xED69420) to BAR0
+    movl $XHCI_ADDR, %eax       # New MMIO base address (aligned to 16 bytes)
+    movw $0xCF8, %dx            # PCI configuration address register
+    outl %eax, %dx              # Write BAR0 address to PCI_CONFIG_ADDRESS
 
-    # Read the value back from xHCI MMIO to verify (same address)
-    mov $XHCI_ADDR, %rcx        # Load XHCI_ADDR again
-    mov (%rcx), %rax           # Read the value from the xHCI MMIO address
-    cmp $0x1000, %rax          # Compare with expected value
+    movw $0xCFC, %dx            # PCI configuration data register
+    outl %eax, %dx              # Write the new MMIO base address to BAR0
 
-    ljmp $0x08, $start_main
+    # Step 4: Verify the new MMIO base address
+    movl $0x80001010, %eax      # PCI Configuration Address for BAR0
+    movw $0xCF8, %dx
+    outl %eax, %dx              # Write to PCI Configuration Address Register
+
+    movw $0xCFC, %dx            # PCI Configuration Data Register
+    inl %dx, %eax               # Read back BAR0 value
+    cmpl $XHCI_ADDR, %eax       # Check if it matches 0xED69420
+    je start_main               # If equal, remapping succeeded
+
+failure:
+    # hlt                         # Halt if remapping failed
     
 # Call C main function
 start_main:
