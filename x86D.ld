@@ -55,6 +55,12 @@ SECTIONS {
         . = . + 0x80000;     /* Allocate 0.5MB for the heap (adjustable) */
         __heap_end = .;      /* Mark the end of the heap */
     }
+    . = 0x69420000;
+    .mmio : ALIGN(4K){
+        __mmio_region_start = .;
+        . = . + 0xF000;
+        __mmio_region_end = .;
+    }
     /* Data relocation and alignment for other sections */
     _end = .;        /* Define the end of the program's memory region */
 }
