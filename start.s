@@ -4,9 +4,6 @@
 .set MAGIC,    0x1BADB002       # 'magic number' lets bootloader find the header
 .set CHECKSUM, -(MAGIC + FLAGS) # checksum of above, to prove we are multiboot
 
-# xHCI Address
-# .set XHCI_ADDR, $__mmio_region_start
-
 # PCI xHCI Related Info
 # QEMU Specific PCI Base Address
 .set PCI_DEVICE_ADDRESS_BASE, 0x80000000
@@ -86,8 +83,6 @@ _start:
 
     fninit                      # FPU init
 
-    lgdt gdt_descriptor_32        # Load the GDT
-
     # Enable protected mode
     # mov %cr0, %eax
     # or $0x1, %eax              # Set the PE bit
@@ -101,16 +96,18 @@ _start:
     # mov %ax, %ss
 
     # Enable Long Mode
-    # movl $0xC0000080, %ecx     # Load EFER MSR
-    # rdmsr
-    # orl $0x00000100, %eax      # Set LME (Long Mode Enable)
-    # wrmsr
+    movl $0xC0000080, %ecx     # Load EFER MSR
+    rdmsr
+    orl $0x00000100, %eax      # Set LME (Long Mode Enable)
+    wrmsr
 
-    # mov %cr4, %eax
-    # or $0x20, %eax             # Enable PAE (Physical Address Extension)
-    # mov %eax, %cr4
+    lgdt gdt_descriptor_64        # Load the GDT
 
-    # Disable caching by clea# ring the CD and NW bits in CR0
+    mov %cr4, %eax
+    or $0x20, %eax             # Enable PAE (Physical Address Extension)
+    mov %eax, %cr4
+
+    # Disable caching by clearing the CD and NW bits in CR0
     # movl %cr0, %eax            # Load CR0 register value into %eax
     # btcl $30, %eax             # Set the CD (Cache Disable) bit (bit 30)
     # btcl $29, %eax             # Set the NW (No Write-Through) bit (bit 29)
@@ -119,25 +116,17 @@ _start:
     # Invalidate the cache after disabling caching
     invd                      # Invalidate the internal cache
 
-
-# .code64
-_code64:
-    mov $__stack_top, %esp     # Set up 64-bit stack
-    xor %ebp, %ebp
-
 _xHCI_setup:
-   # call setup_xhci            # C Code to setup xHCI
     read_pci $xHCI_BAR0_ADDR
-    andl $0xFFFFFFF0, %eax  # Mask - from osdev
-    mov %eax, %ebx          # Copy so that we keep original address to reuse
+    and $0xFFFFFFF0, %eax     # Mask - from osdev
+    # movl %eax, %ebx           # Copy so that we keep original address to reuse
     # add $0x40, %ebx         # From xHCI QEMU - constant
     # mov (%ebx), %ecx        # Reset xHCI controller
     # movl $0x02, (%ebx)      # Reset the controller - set bit 1 to 1 for reset
     # movl (%ebx), %ecx       # Read the value back into %ecx
 
-    mov %eax, %ebx          # Reload the MMIO address
-    add $0x2, %ebx          # Add offset of +2H to read HCIVERSION
-    mov (%ebx), %eax        # Read its contents into eax register
+    # add $0x2, %ebx          # Add offset of +2H to read HCIVERSION
+    movl (%eax), %ebx            # Read 64-bit value from MMIO address into rbx        # Read its contents into eax register
 
     write_pci $xHCI_BAR0_ADDR, $0xFFFFFFFF
     read_pci $xHCI_BAR0_ADDR
@@ -202,8 +191,8 @@ _xHCI_mmio_map:
 
     invd                         # Invalidate internal CPU caches
     
-    movl %cr3, %eax     # Move the value of CR3 into RAX (64-bit register)
-    movl %eax, %cr3     # Move the value from RAX back into CR3
+    # movq %cr3, %rax     # Move the value of CR3 into RAX (64-bit register)
+    # movq %rax, %cr3     # Move the value from RAX back into CR3
 
 
     # Read BAR0
@@ -213,8 +202,14 @@ _xHCI_mmio_map:
     je start_main               # If equal, remapping succeeded
 
 failure:
-    # hlt                         # Halt if remapping failed
-    
+    hlt                         # Halt if remapping failed
+
+
+.code64
+_code64:
+    mov $__stack_top, %rsp     # Set up 64-bit stack
+    xor %rbp, %rbp
+
 # Call C main function
 start_main:
     read_pci $xHCI_BAR0_ADDR
