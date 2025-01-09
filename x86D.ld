@@ -6,7 +6,6 @@
  * the assembly file as well as your .c files, link them together and generate binary
  * that can be run on a bare-metal system.
  */
-OUTPUT_FORMAT("elf64-x86-64")
 
 ENTRY(_start)    /* Entry point for the kernel */
 
