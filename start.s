@@ -4,6 +4,9 @@
 .set MAGIC,    0x1BADB002       # 'magic number' lets bootloader find the header
 .set CHECKSUM, -(MAGIC + FLAGS) # checksum of above, to prove we are multiboot
 
+# xHCI PCI Address
+.set xHCI_ADDRESS, 0x69420000
+
 # PCI xHCI Related Info
 # QEMU Specific PCI Base Address
 .set PCI_DEVICE_ADDRESS_BASE, 0x80000000
@@ -116,63 +119,15 @@ _start:
     # Invalidate the cache after disabling caching
     invd                      # Invalidate the internal cache
 
-_xHCI_setup:
-    read_pci $xHCI_BAR0_ADDR
-    and $0xFFFFFFF0, %eax     # Mask - from osdev
-    # movl %eax, %ebx           # Copy so that we keep original address to reuse
-    # add $0x40, %ebx         # From xHCI QEMU - constant
-    # mov (%ebx), %ecx        # Reset xHCI controller
-    # movl $0x02, (%ebx)      # Reset the controller - set bit 1 to 1 for reset
-    # movl (%ebx), %ecx       # Read the value back into %ecx
-
-    # add $0x2, %ebx          # Add offset of +2H to read HCIVERSION
-    movl (%eax), %ebx            # Read 64-bit value from MMIO address into rbx        # Read its contents into eax register
-
-    write_pci $xHCI_BAR0_ADDR, $0xFFFFFFFF
-    read_pci $xHCI_BAR0_ADDR
-
-_xHCI_enable_bus_master:
-    read_pci $xHCI_CMDR_ADDR
-    orl %eax, 0x02
-    movw $0xCFC, %dx               # PCI configuration data register
-    outl %eax, %dx                 # Write the new MMIO base address to BAR0
-    mfence
-
-_xHCI_mmio_mse:
-    read_pci $xHCI_CMDR_ADDR    # Value Obtained = 0x100107
-/*
-    1b36:000d  -   PCI xhci usb host adapter
- */
-_xHCI_VID:
-    read_pci $xHCI_VID_ADDR     # Value Obtained = 0xd1b36 - 1b36
-_xHCI_DID:
-    read_pci $xHCI_DID_ADDR     # Value Obtained = 0x107000d - 000d
-_xHCI_PCI_BUS_HEADER:
-    read_pci $xHCI_HEAD_ADDR    # Value Obtained = 0x40000  00
-_xHCI_PCI_BAR1:
-    read_pci $xHCI_BAR1_ADDR    # Value Obtained = 0x0
-
-_xHCI_mmio_read:
-    # Step 1: Write to PCI Configuration Address Register to access BAR0
-    read_pci $xHCI_BAR0_ADDR
-    # and $0xFFFFFFF0, %eax       # Mask lower 4 bits to get MMIO base address
-    test %eax, %eax             # Check if BAR0 is valid
-    jz failure                  # Handle error if MMIO base is invalid
-
-_xHCI_HCIVERSION_read:
-    add $0x02, %eax             # HCIVERSION is at BASE+02H
-    mov %eax, %ebx
-    mov (%ebx), %eax            # Read HCIVERSION register value
-
 _xHCI_mmio_map:
     # Write new MMIO address to BAR0
     movl $xHCI_BAR0_ADDR, %eax     # PCI BAR0 address register (Base Address Register 0)
     movw $0xCF8, %dx               # PCI configuration address register
     outl %eax, %dx                 # Write to select PCI configuration address register
-    mfence                   # Ensure the write completes
+    mfence                         # Ensure the write completes
 
     # Write the custom MMIO base address to BAR0
-    movl $__mmio_region_start, %eax          # Load the custom MMIO base address into EAX
+    movl $xHCI_ADDRESS, %eax          # Load the custom MMIO base address into EAX
     movw $0xCFC, %dx               # PCI configuration data register
     outl %eax, %dx                 # Write the new MMIO base address to BAR0
     mfence 
@@ -182,7 +137,6 @@ _xHCI_mmio_map:
     movw $0xCF8, %dx
     outl %eax, %dx
     mfence                       # Ensure all memory operations are completed
-
     movw $0xCFC, %dx
     inl %dx, %eax                # Read current Command Register value
     orl $0x2, %eax               # Set bit 1 (MSE)
@@ -191,14 +145,15 @@ _xHCI_mmio_map:
 
     invd                         # Invalidate internal CPU caches
     
-    # movq %cr3, %rax     # Move the value of CR3 into RAX (64-bit register)
-    # movq %rax, %cr3     # Move the value from RAX back into CR3
-
+    read_pci $xHCI_BAR0_ADDR
+    andl $0xFFFFFFF0, %eax
+    add $0x02, %eax             # HCSPARAMS1 is at BASE+04H
+    movw (%eax), %dx            # Read HCSPARAMS1 register value
 
     # Read BAR0
     read_pci $xHCI_BAR0_ADDR
-
-    cmpl $__mmio_region_start, %eax       # Check if it matches 0xED69420
+    andl $0xFFFFFFF0, %eax
+    cmpl $xHCI_ADDRESS, %eax       # Check if it matches 0xED69420
     je start_main               # If equal, remapping succeeded
 
 failure:
@@ -206,17 +161,11 @@ failure:
 
 
 .code64
-_code64:
+start_main:
     mov $__stack_top, %rsp     # Set up 64-bit stack
     xor %rbp, %rbp
 
 # Call C main function
-start_main:
-    read_pci $xHCI_BAR0_ADDR
-    andl $0xFFFFFFF0, %eax
-    add $0x02, %eax             # HCSPARAMS1 is at BASE+04H
-    mov %eax, %edx
-    movw (%edx), %dx            # Read HCSPARAMS1 register value
     call main
     hlt
 
