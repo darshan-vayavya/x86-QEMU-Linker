@@ -1,11 +1,25 @@
+# Assembly code for x86 Machine start code.
+# Author: Darshan(@thisisthedarshan) <darshanp@vayavyalabs.com>
+# This assembly code is used to boot the bare-metal QEMU system to enable us to
+# run custom C code. The assembly code also includes test for qemu xHCI device
+# connected on PCI bus 
+# The C code is generated using GCC's x86 build tools. The Makefile is included
+# to build the image file that can be run on QEMU's x86 system..
+# The Assembly code is designed with multi-boot compliance
 .set ALIGN,    1<<0             # align loaded modules on page boundaries
 .set MEMINFO,  1<<1             # provide memory map
 .set FLAGS,    ALIGN | MEMINFO  # this is the Multiboot 'flag' field
 .set MAGIC,    0x1BADB002       # 'magic number' lets bootloader find the header
 .set CHECKSUM, -(MAGIC + FLAGS) # checksum of above, to prove we are multiboot
+.section .multiboot
+.align 4
+.global _boot_grub
+_boot_grub:
+    .long MAGIC
+    .long FLAGS
+    .long CHECKSUM
+# Multiboot headers - setup done
 
-# xHCI PCI Address
-.set xHCI_ADDRESS, 0x69420000
 
 # PCI xHCI Related Info
 # QEMU Specific PCI Base Address
@@ -53,26 +67,7 @@
     mfence
 .endm
 
-# Macro to write a value at an address in PCI
-.macro write_pci addr, value
-    movl \addr, %eax          # Load the PCI address (register) into %eax
-    movw $0xCF8, %dx          # PCI configuration address register
-    outl %eax, %dx            # Write the address to the PCI configuration register
-
-    movl \value, %eax         # Load the value to write into %eax
-    movw $0xCFC, %dx          # PCI configuration data register
-    outl %eax, %dx            # Write the value to the PCI configuration data register
-    mfence                    # Memory fence to ensure the write operation is completed
-.endm
-
-
-.section .multiboot
-.align 4
-.global _boot_grub
-_boot_grub:
-    .long MAGIC
-    .long FLAGS
-    .long CHECKSUM
+# Start of main logic
 
 .section .text
 .global _start
@@ -87,16 +82,16 @@ _start:
     fninit                      # FPU init
 
     # Enable protected mode
-    # mov %cr0, %eax
-    # or $0x1, %eax              # Set the PE bit
-    # mov %eax, %cr0
+    mov %cr0, %eax
+    or $0x1, %eax              # Set the PE bit
+    mov %eax, %cr0
 
-    # mov $0x10, %ax             # Load data selector into segments
-    # mov %ax, %ds
-    # mov %ax, %es
-    # mov %ax, %fs
-    # mov %ax, %gs
-    # mov %ax, %ss
+    mov $0x10, %ax             # Load data selector into segments
+    mov %ax, %ds
+    mov %ax, %es
+    mov %ax, %fs
+    mov %ax, %gs
+    mov %ax, %ss
 
     # Enable Long Mode
     movl $0xC0000080, %ecx     # Load EFER MSR
@@ -110,55 +105,16 @@ _start:
     or $0x20, %eax             # Enable PAE (Physical Address Extension)
     mov %eax, %cr4
 
-    # Disable caching by clearing the CD and NW bits in CR0
-    # movl %cr0, %eax            # Load CR0 register value into %eax
-    # btcl $30, %eax             # Set the CD (Cache Disable) bit (bit 30)
-    # btcl $29, %eax             # Set the NW (No Write-Through) bit (bit 29)
-    # movl %eax, %cr0            # Store the modified value back into CR0
-
     # Invalidate the cache after disabling caching
     invd                      # Invalidate the internal cache
 
-_xHCI_mmio_map:
-    # Write new MMIO address to BAR0
-    movl $xHCI_BAR0_ADDR, %eax     # PCI BAR0 address register (Base Address Register 0)
-    movw $0xCF8, %dx               # PCI configuration address register
-    outl %eax, %dx                 # Write to select PCI configuration address register
-    mfence                         # Ensure the write completes
-
-    # Write the custom MMIO base address to BAR0
-    movl $xHCI_ADDRESS, %eax          # Load the custom MMIO base address into EAX
-    movw $0xCFC, %dx               # PCI configuration data register
-    outl %eax, %dx                 # Write the new MMIO base address to BAR0
-    mfence 
-    
-    # Set MSE bit:
-    movl $xHCI_CMDR_ADDR, %eax       # Address for PCI Command Register
-    movw $0xCF8, %dx
-    outl %eax, %dx
-    mfence                       # Ensure all memory operations are completed
-    movw $0xCFC, %dx
-    inl %dx, %eax                # Read current Command Register value
-    orl $0x2, %eax               # Set bit 1 (MSE)
-    outl %eax, %dx               # Write back to Command Register
-    mfence                       # Ensure all memory operations are completed
-
-    invd                         # Invalidate internal CPU caches
-    
+xHCI_read_HCIVERSION:
+    movl $0x069420, %eax
+    movl $0x01020304, (%eax)
     read_pci $xHCI_BAR0_ADDR
     andl $0xFFFFFFF0, %eax
-    add $0x02, %eax             # HCSPARAMS1 is at BASE+04H
-    movw (%eax), %dx            # Read HCSPARAMS1 register value
-
-    # Read BAR0
-    read_pci $xHCI_BAR0_ADDR
-    andl $0xFFFFFFF0, %eax
-    cmpl $xHCI_ADDRESS, %eax       # Check if it matches 0xED69420
-    je start_main               # If equal, remapping succeeded
-
-failure:
-    hlt                         # Halt if remapping failed
-
+    add $0x02, %eax              # HCIVERSION is at BASE+02H
+    movl (%eax), %edx            
 
 .code64
 start_main:
@@ -169,18 +125,9 @@ start_main:
     call main
     hlt
 
+# GDT Section
 .section .rodata
 .align 4096
-
-gdt_32:
-    .quad 0x0000000000000000   # Null descriptor
-    .quad 0x00AF9A000000FFFF  # Code segment (32-bit)
-    .quad 0x00AF92000000FFFF  # Data segment (32-bit)
-
-gdt_descriptor_32:
-    .word (gdt_end_32 - gdt_32 - 1)
-    .quad gdt_32
-gdt_end_32:
 
 gdt_64:
     .quad 0x0000000000000000   # Null descriptor
