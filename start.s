@@ -28,28 +28,12 @@
 .set PCI_STATUS_OFFSET, 0x06    # Status Register (16 bits)
 .set PCI_REV_ID_OFFSET, 0x08    # Revision ID (8 bits)
 .set PCI_CLASS_CODE_OFFSET, 0x09 # Class Code (24 bits: Prog IF, Subclass, Base Class)
-.set PCI_CACHE_LINE_SIZE, 0x0C  # Cache Line Size (8 bits)
-.set PCI_LATENCY_TIMER, 0x0D    # Latency Timer (8 bits)
 .set PCI_HEADER_TYPE, 0x0E      # Header Type (8 bits)
 .set PCI_BIST, 0x0F             # Built-in Self-Test (8 bits)
 
 .set PCI_BAR_0_OFFSET, 0x10     # Base Address Register 0 (32 bits or 64 bits)
 .set PCI_BAR_1_OFFSET, 0x14     # Base Address Register 1 (32 bits or 64 bits)
-.set PCI_BAR_2_OFFSET, 0x18     # Base Address Register 2 (32 bits or 64 bits)
-.set PCI_BAR_3_OFFSET, 0x1C     # Base Address Register 3 (32 bits or 64 bits)
-.set PCI_BAR_4_OFFSET, 0x20     # Base Address Register 4 (32 bits or 64 bits)
-.set PCI_BAR_5_OFFSET, 0x24     # Base Address Register 5 (32 bits or 64 bits)
 
-.set PCI_CARDBUS_CIS_OFFSET, 0x28 # CardBus CIS Pointer (32 bits)
-.set PCI_SUBSYSTEM_VENDOR_ID, 0x2C # Subsystem Vendor ID (16 bits)
-.set PCI_SUBSYSTEM_ID, 0x2E     # Subsystem ID (16 bits)
-.set PCI_EXPANSION_ROM_ADDR, 0x30 # Expansion ROM Base Address (32 bits)
-.set PCI_CAP_PTR, 0x34          # Capabilities Pointer (8 bits)
-.set PCI_RESERVED_1, 0x35       # Reserved (24 bits)
-.set PCI_INT_LINE, 0x3C         # Interrupt Line (8 bits)
-.set PCI_INT_PIN, 0x3D          # Interrupt Pin (8 bits)
-.set PCI_MIN_GRANT, 0x3E        # Minimum Grant (8 bits)
-.set PCI_MAX_LATENCY, 0x3F      # Maximum Latency (8 bits)
 
 # Final Calculated Addresses
 .set xHCI_VID_ADDR,  xHCI_PCI_ADDR | PCI_VID_OFFSET
@@ -100,7 +84,9 @@ _start:
     mov $__stack_top, %esp     # Set up the stack
     mov %esp, %ebp
 
-    # lgdt gdt_descriptor_64        # Load the GDT
+    fninit                      # FPU init
+
+    lgdt gdt_descriptor_32        # Load the GDT
 
     # Enable protected mode
     # mov %cr0, %eax
@@ -120,34 +106,34 @@ _start:
     # orl $0x00000100, %eax      # Set LME (Long Mode Enable)
     # wrmsr
 
-    mov %cr4, %eax
-    or $0x20, %eax             # Enable PAE (Physical Address Extension)
-    mov %eax, %cr4
+    # mov %cr4, %eax
+    # or $0x20, %eax             # Enable PAE (Physical Address Extension)
+    # mov %eax, %cr4
 
-    # Disable caching by clearing the CD and NW bits in CR0
+    # Disable caching by clea# ring the CD and NW bits in CR0
     # movl %cr0, %eax            # Load CR0 register value into %eax
-    # btsl $30, %eax             # Set the CD (Cache Disable) bit (bit 30)
-    # btsl $29, %eax             # Set the NW (No Write-Through) bit (bit 29)
+    # btcl $30, %eax             # Set the CD (Cache Disable) bit (bit 30)
+    # btcl $29, %eax             # Set the NW (No Write-Through) bit (bit 29)
     # movl %eax, %cr0            # Store the modified value back into CR0
 
     # Invalidate the cache after disabling caching
     invd                      # Invalidate the internal cache
 
 
-.code64
+# .code64
 _code64:
-    mov $__stack_top, %rsp     # Set up 64-bit stack
-    xor %rbp, %rbp
+    mov $__stack_top, %esp     # Set up 64-bit stack
+    xor %ebp, %ebp
 
 _xHCI_setup:
    # call setup_xhci            # C Code to setup xHCI
     read_pci $xHCI_BAR0_ADDR
     andl $0xFFFFFFF0, %eax  # Mask - from osdev
     mov %eax, %ebx          # Copy so that we keep original address to reuse
-    add $0x40, %ebx         # From xHCI QEMU - constant
-    mov (%ebx), %ecx        # Reset xHCI controller
-    movl $0x02, (%ebx)      # Reset the controller - set bit 1 to 1 for reset
-    movl (%ebx), %ecx       # Read the value back into %ecx
+    # add $0x40, %ebx         # From xHCI QEMU - constant
+    # mov (%ebx), %ecx        # Reset xHCI controller
+    # movl $0x02, (%ebx)      # Reset the controller - set bit 1 to 1 for reset
+    # movl (%ebx), %ecx       # Read the value back into %ecx
 
     mov %eax, %ebx          # Reload the MMIO address
     add $0x2, %ebx          # Add offset of +2H to read HCIVERSION
@@ -216,9 +202,8 @@ _xHCI_mmio_map:
 
     invd                         # Invalidate internal CPU caches
     
-    movq %cr3, %rax     # Move the value of CR3 into RAX (64-bit register)
-    movq %rax, %cr3     # Move the value from RAX back into CR3
-
+    movl %cr3, %eax     # Move the value of CR3 into RAX (64-bit register)
+    movl %eax, %cr3     # Move the value from RAX back into CR3
 
 
     # Read BAR0
@@ -240,7 +225,7 @@ start_main:
     call main
     hlt
 
-.section .data
+.section .rodata
 .align 4096
 
 gdt_32:
