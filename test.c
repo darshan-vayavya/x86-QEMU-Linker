@@ -1,7 +1,7 @@
 #include <stdint.h>
 
 // Define MMIO base address (hardcoded for this example)
-#define XHCI_BASE_ADDR 0x0ED69420
+#define XHCI_BASE_ADDR 0xFEBB0000
 
 // Define offsets for HCSPARAMS1 and HCCPARAMS1 registers
 #define HCSPARAMS1_OFFSET 0x04
