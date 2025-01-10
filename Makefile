@@ -53,7 +53,8 @@ $(OUTPUT): $(ASM_OBJ) $(C_OBJ)
 # Run the final image using QEMU
 run: $(OUTPUT)
 	$(QEMU) -drive file=$(BOOT_IMG),format=raw -m $(MEM) -smp $(CORES) \
-		 			-cpu qemu64 -no-reboot $(QEMU_GDB) -device qemu-xhci,addr=$(XHCI_PCI_ADDR) \
+		 			-cpu qemu64 -no-reboot $(QEMU_GDB) \ 
+					-device qemu-xhci,addr=$(XHCI_PCI_ADDR) \
 					-d guest_errors,trace:usb_xhci*,trace:usb_dwc*
 
 # Clean up the generated files
