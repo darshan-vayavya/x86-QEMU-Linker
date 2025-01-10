@@ -7,6 +7,10 @@
  * that can be run on a bare-metal system.
  */
 
+HEAP_START = 0x1D369000;
+HEAP_SIZE = 0x18369000; /* ! 406.228992 MB */
+STACK_SIZE = 16384;
+
 ENTRY(_start)    /* Entry point for the kernel */
 
 SECTIONS {
@@ -44,16 +48,18 @@ SECTIONS {
     /* Stack section */
     .stack (NOLOAD) :  ALIGN(16)  {
         __stack_bottom = .;  /* Mark the start of the stack */
-        . = . + 16384;       /* Allocate 16KiB for the stack (adjustable) */
+        . = . + STACK_SIZE;       /* Allocate 16KiB for the stack (adjustable) */
         __stack_top = .;      /* Mark the end of the stack */
     }
 
-    /* Define the heap section (after stack) */
-    .heap : ALIGN(16)  {
-        __heap_start = .;    /* Mark the start of the heap */
-        . = . + 0x80000;     /* Allocate 0.5MB for the heap (adjustable) */
-        __heap_end = .;      /* Mark the end of the heap */
+    /* Define the heap section at a fixed address - since we are doing bare-metal*/
+    . =  HEAP_START;  /* Set the current location to 0x1D369000 */
+    .heap : ALIGN(4K) {
+        __heap_start = .;    /* Mark the start of the heap at the current location */
+        . = . + HEAP_SIZE;  /* Allocate 409.6 MB for the heap (adjustable) */
+        __heap_end = .;      /* Mark the end of the heap at the current location */
     }
+
     /* Data relocation and alignment for other sections */
     _end = .;        /* Define the end of the program's memory region */
 }
