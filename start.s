@@ -6,6 +6,7 @@
 # The C code is generated using GCC's x86 build tools. The Makefile is included
 # to build the image file that can be run on QEMU's x86 system..
 # The Assembly code is designed with multi-boot compliance
+
 .set ALIGN,    1<<0             # align loaded modules on page boundaries
 .set MEMINFO,  1<<1             # provide memory map
 .set FLAGS,    ALIGN | MEMINFO  # this is the Multiboot 'flag' field
@@ -107,14 +108,6 @@ _start:
 
     # Invalidate the cache after disabling caching
     invd                      # Invalidate the internal cache
-
-xHCI_read_HCIVERSION:
-    movl $0x069420, %eax
-    movl $0x01020304, (%eax)
-    read_pci $xHCI_BAR0_ADDR
-    andl $0xFFFFFFF0, %eax
-    add $0x02, %eax              # HCIVERSION is at BASE+02H
-    movl (%eax), %edx            
 
 .code64
 start_main:
