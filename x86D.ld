@@ -53,10 +53,10 @@ SECTIONS {
     }
 
     /* Define the heap section at a fixed address - since we are doing bare-metal*/
-    . =  HEAP_START;  /* Set the current location to 0x1D369000 */
+    . = HEAP_START;
     .heap : ALIGN(4K) {
         __heap_start = .;    /* Mark the start of the heap at the current location */
-        . = . + HEAP_SIZE;  /* Allocate 409.6 MB for the heap (adjustable) */
+        . = . + HEAP_SIZE;   /* Allocate 429.298 MB for the heap (adjustable) */
         __heap_end = .;      /* Mark the end of the heap at the current location */
     }
 
