@@ -7,12 +7,12 @@
 # File names
 ASM_SRC = start.s
 ASM_OBJ = start.o
-C_SRC = $(wildcard *.c)      # Collect all .c files in the directory
-C_OBJ = $(C_SRC:.c=.o)       # Convert .c files to .o files
+C_SRCS = $(shell find . -name "*.c") # Collect all .c files in all the directories
+C_OBJS = $(C_SRCS:.c=.o)       # Convert .c files to .o files
 
 # Output binary
 OUTPUT = x86-bare.dsp
-BOOT_IMG = boot.img
+BOOT_IMG = boot.dsp
 
 # Compiler and tools
 CC = gcc
@@ -29,8 +29,11 @@ XHCI_PCI_ADDR = 05.0 # Bus 0, Device 5, Function 0
 
 # Compiler flags
 CFLAGS = -ffreestanding -fcf-protection=none -mno-shstk -fno-PIE \
-				 -nostartfiles -nostdlib -Wall -O2 -m64 -ggdb3 -std=gnu99
+         -nostartfiles -nostdlib -Wall -O2 -m64 -ggdb3 -std=gnu99 \
+         -I. $(shell find . -type d -not -path '*/\.*' -exec echo -I{} \;)
+
 LDFLAGS = -m elf_x86_64 -O2 -nostdlib -g -T x86D.ld -o $(OUTPUT)
+
 ASFLAGS = -ggdb3 --64 $(ASM_SRC) -o $(ASM_OBJ)
 
 
@@ -43,12 +46,12 @@ $(ASM_OBJ): $(ASM_SRC)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 # Rule to compile C files into object files
-%.o: %.c
+$(C_OBJS): %.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
 # Rule to link object files into an ELF binary
-$(OUTPUT): $(ASM_OBJ) $(C_OBJ)
-	$(LD) $(LDFLAGS) $(ASM_OBJ) $(C_OBJ)
+$(OUTPUT): $(ASM_OBJ) $(C_OBJS)
+	$(LD) $(LDFLAGS) $(ASM_OBJ) $(C_OBJS)
 
 # Run the final image using QEMU
 run: $(OUTPUT)
@@ -59,7 +62,7 @@ run: $(OUTPUT)
 
 # Clean up the generated files
 clean:
-	rm -f $(ASM_OBJ) $(C_OBJ) x86-bare.elf $(OUTPUT)
+	rm -f $(ASM_OBJ) $(C_OBJS) $(OUTPUT)
 
 # Phony targets
 .PHONY: all clean run

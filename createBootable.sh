@@ -1,14 +1,14 @@
 #!/bin/bash
 #
-# Check if boot.img exists or not. If it does not, create a new one
-if [ -f "boot.img" ]; then
-  echo "Found boot.img"
+# Check if boot.dsp exists or not. If it does not, create a new one
+if [ -f "boot.dsp" ]; then
+  echo "Found boot.dsp"
 else
-  echo "boot.img does not exist. Creating a new one"
+  echo "boot.dsp does not exist. Creating a new one"
   # Create a blank disk of size 10 MB
-  dd if=/dev/zero of=boot.img bs=512K count=60
+  dd if=/dev/zero of=boot.dsp bs=512K count=60
   # Mount it
-  sudo losetup /dev/loop69 boot.img
+  sudo losetup /dev/loop69 boot.dsp
   # Create partition
   sudo gdisk /dev/loop69 <<EOF
 o
@@ -48,13 +48,13 @@ EOF'
   sudo umount /mnt/boot
   sudo losetup -d /dev/loop69
   # Print completion message
-  echo Completed Creation of boot.img
+  echo Completed Creation of boot.dsp
 fi
 
 if grub-file --is-x86-multiboot x86-bare.dsp; then
-  echo multiboot confirmed. setting up boot.img
+  echo multiboot confirmed. setting up boot.dsp
   # loop-setup
-  sudo losetup /dev/loop69 boot.img
+  sudo losetup /dev/loop69 boot.dsp
   sudo partprobe /dev/loop69
   # Mount
   sudo mkdir -p /mnt/boot
@@ -66,7 +66,7 @@ if grub-file --is-x86-multiboot x86-bare.dsp; then
   sudo umount /mnt/boot/
   sudo losetup -d /dev/loop69
   # Display success
-  echo Successfully Updated boot.img
+  echo Successfully Updated boot.dsp
 else
   echo the file is not multiboot
 fi
