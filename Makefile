@@ -21,7 +21,7 @@ AS = as
 
 # QEMU and Its Arguments
 QEMU = qemu-system-x86_64
-MEM = 1G # For 1 GB Memory
+MEM = 1.2G # For 1 GB Memory
 CORES = 1 # For single core - max 4 cores recommended
 QEMU_GDB = -s -S # GDB Flags - No need to keep if not required
 XHCI_PCI_ADDR = 05.0 # Bus 0, Device 5, Function 0

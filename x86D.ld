@@ -8,7 +8,7 @@
  */
 
 HEAP_START = 0x1D369000;
-HEAP_SIZE = 0x19969000; /* ! 430 MB */
+HEAP_SIZE = 0x19969000; /* ~430 MB */
 STACK_SIZE = 16384;
 
 ENTRY(_start)    /* Entry point for the kernel */
