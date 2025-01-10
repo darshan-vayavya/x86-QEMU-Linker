@@ -1,11 +1,27 @@
 #!/bin/bash
-#
-# Check if boot.dsp exists or not. If it does not, create a new one
+# Written by Darshan(@thisisthedarshan) <darshanp@vayavyalabs.com>
+# This bash script is used to create a bootable image file that can
+# be run on QEMU. The file will need to be run as sudo user since it
+# involves mounting and unmounting the image file onto the file-system
+# The script works as follows -
+# - Checks if the file is boot.dsp file is present.
+#   - If the File is not present - Create a new file of size 30 MB
+#   - Mount the file and create new GPT partition
+#   - Update filesystem to recognize the new partition
+#   - Format this newly created partition using ext4 - for grub
+#   - Mount it onto accessible filesystem and install grub and grub config
+#   - Unmount
+# - If the boot.dsp file exists, the script does the following:
+#   - Mount the image file onto accessible filesystem
+#   - Remove the old elf file - x86-bare.dsp
+#   - Load the updated elf file.
+#   - Unmount the boot.dsp from the filesystem to complete process.
+
 if [ -f "boot.dsp" ]; then
   echo "Found boot.dsp"
 else
   echo "boot.dsp does not exist. Creating a new one"
-  # Create a blank disk of size 10 MB
+  # Create a blank disk of size 30 MB
   dd if=/dev/zero of=boot.dsp bs=512K count=60
   # Mount it
   sudo losetup /dev/loop69 boot.dsp
@@ -16,21 +32,15 @@ y
 n
 1
 
-+15M
+
 8300
-n
-2
-
-
-EF02
 w
 y
 EOF
-  # Scan for new partitions
+  # Scan for new partition
   sudo partprobe /dev/loop69
-  # Format them
+  # Format it
   sudo mkfs.ext4 /dev/loop69p1
-  sudo mkfs.fat -F 32 /dev/loop69p2
   # Mount partition to install grub
   sudo mount /dev/loop69p1 /mnt/boot
   sudo mkdir -p /mnt/boot/boot/grub
@@ -39,7 +49,7 @@ EOF
   # Write config
   sudo bash -c 'cat > /mnt/boot/boot/grub/grub.cfg <<EOF
 set default=0
-set timeout=0
+set timeout=1
 menuentry "DSPs Bare-Metal Kernel" {
     multiboot /boot/x86-bare.dsp
 }
