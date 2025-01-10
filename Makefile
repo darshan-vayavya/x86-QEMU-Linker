@@ -1,6 +1,6 @@
 # This makefile is used to build bare-metal binaries for x86 devices to run on QEMU
 # Author: Darshan(@thisisthedarshan) <darshanp@vayavyalabs.com> 
-# Simply run the command `make` to run this file. It generates a x86-bare.bin file
+# Simply run the command `make` to run this file. It generates a x86-bare.dsp file
 # which is the .c files compiled to run on x86 QEMU. Check the README of this repo
 # for more information.
 
@@ -24,11 +24,12 @@ QEMU = qemu-system-x86_64
 MEM = 1G # For 1 GB Memory
 CORES = 1 # For single core - max 4 cores recommended
 QEMU_GDB = -s -S # GDB Flags - No need to keep if not required
-XHCI_PCI_ADDR = 01.5 # Bus 01, Device 5
+XHCI_PCI_ADDR = 05.0 # Bus 0, Device 5, Function 0
 
 
 # Compiler flags
-CFLAGS = -ffreestanding -fcf-protection=none -mno-shstk -fno-PIE -nostartfiles -nostdlib -Wall -O2 -m64 -ggdb3 -std=gnu99
+CFLAGS = -ffreestanding -fcf-protection=none -mno-shstk -fno-PIE \
+				 -nostartfiles -nostdlib -Wall -O2 -m64 -ggdb3 -std=gnu99
 LDFLAGS = -m elf_x86_64 -O2 -nostdlib -g -T x86D.ld -o $(OUTPUT)
 ASFLAGS = -ggdb3 --64 $(ASM_SRC) -o $(ASM_OBJ)
 
@@ -51,7 +52,9 @@ $(OUTPUT): $(ASM_OBJ) $(C_OBJ)
 
 # Run the final image using QEMU
 run: $(OUTPUT)
-	$(QEMU) -drive file=$(BOOT_IMG),format=raw -m $(MEM) -smp $(CORES) -cpu qemu64 -no-reboot -serial mon:stdio $(QEMU_GDB) -device qemu-xhci,addr=$(XHCI_PCI_ADDR)
+	$(QEMU) -drive file=$(BOOT_IMG),format=raw -m $(MEM) -smp $(CORES) \
+		 			-cpu qemu64 -no-reboot $(QEMU_GDB) -device qemu-xhci,addr=$(XHCI_PCI_ADDR) \
+					-d guest_errors,trace:usb_xhci*,trace:usb_dwc*
 
 # Clean up the generated files
 clean:
