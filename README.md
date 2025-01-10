@@ -31,15 +31,17 @@ The project explores getting bare-metal C code to run on x86 system using [QEMU]
 
 ## Build information
 
-- The code includes a *[Makefile](Makefile)* (A config used by the [Make](https://en.wikipedia.org/wiki/Make_(software)) tool) to build the system. The main program is named **main.c** by default (but can be changed in the Makefile).
+- The code includes a *[Makefile](Makefile)* (A config used by the [Make](https://en.wikipedia.org/wiki/Make_(software)) tool) to build the system. The main program is any file which has **main** function by default. There can be only one main function.
 
 - The code is built in steps - where the main is built as an [object](https://en.wikipedia.org/wiki/Object_file), then linked together using the linker and the startup code.
 
-- Finally, everything is properly built and a *x86-bare.dsp* image is created. This image can now be run on QEMU.
+- Running `make` command should build an ELF (*x86-bare.dsp*). The command also runs a [script](createBootable.sh) that creates a grub-bootable image file (called by default as boot.img) which can be then loaded on QEMU to run the executable.
+
+> Note: The script will need to be run as sudo user since it does mounting and unmounting of the boot image file to load the elf.
 
 ## Running on QEMU
 
-To run the code on QEMU, simply use `-kernel x86-bare.dsp`
+To run the code on QEMU, simply use `make run`. If you want to customize the be
 
 ## Technical Document
 

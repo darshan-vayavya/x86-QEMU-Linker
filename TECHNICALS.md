@@ -73,7 +73,7 @@ The included script [createBootable.sh](createBootable.sh) creates a ***boot.img
 To run it, you can simply run **make run** or use the following command:
 
 ```bash
-qemu-system-x86_64 -drive file=boot.img,format=raw -m 512M -smp 1 -cpu qemu64 -no-reboot -serial mon:stdio -s -S -device qemu-xhci,addr=01.5
+qemu-system-x86_64 -drive file=boot.img,format=raw -m 1G -smp 1 -cpu qemu64 -no-reboot -s -S -device qemu-xhci,addr=05.0 -d guest_errors,trace:usb_xhci*,trace:usb_dwc*
 ```
 
 ## 7. Conclusion
