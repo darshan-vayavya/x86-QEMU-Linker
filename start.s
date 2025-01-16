@@ -92,7 +92,7 @@ _start:
     mov %ax, %es
     mov %ax, %fs
     mov %ax, %gs
-    mov %ax, %ss
+    # mov %ax, %ss
 
     # Enable Long Mode
     movl $0xC0000080, %ecx     # Load EFER MSR
