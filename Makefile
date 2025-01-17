@@ -25,7 +25,7 @@ MEM = 1.2G # For 1 GB Memory
 CORES = 1 # For single core - max 4 cores recommended
 QEMU_GDB = -s -S # GDB Flags - No need to keep if not required
 XHCI_PCI_ADDR = 05.0 # Bus 0, Device 5, Function 0
-
+LOGFILE=./x86.log
 
 # Compiler flags
 CFLAGS = -ffreestanding -fcf-protection=none -mno-shstk -fno-PIE \
@@ -47,7 +47,7 @@ $(ASM_OBJ): $(ASM_SRC)
 
 # Rule to compile C files into object files
 $(C_OBJS): %.o: %.c
-	$(CC) $(CFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) -DPERSPEC_HW -c $< -o $@
 
 # Rule to link object files into an ELF binary
 $(OUTPUT): $(ASM_OBJ) $(C_OBJS)
@@ -58,7 +58,7 @@ run: $(OUTPUT)
 	$(QEMU) -drive file=$(BOOT_IMG),format=raw -m $(MEM) -smp $(CORES) \
 		 			-cpu qemu64 -no-reboot $(QEMU_GDB) \
 					-device qemu-xhci,addr=$(XHCI_PCI_ADDR) \
-					-d guest_errors,trace:usb_xhci*,trace:usb_dwc*
+					-d guest_errors,trace:usb_xhci*,trace:usb_dwc* -D $(LOGFILE)
 
 # Clean up the generated files
 clean:
