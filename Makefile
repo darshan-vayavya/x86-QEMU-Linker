@@ -28,11 +28,12 @@ XHCI_PCI_ADDR = 05.0 # Bus 0, Device 5, Function 0
 LOGFILE=./x86.log
 
 # Compiler flags
+OPTIMIZATION = -O0 # 0 - No, 2 -Better
 CFLAGS = -ffreestanding -fcf-protection=none -mno-shstk -fno-PIE \
-         -nostartfiles -nostdlib -Wall -O2 -m64 -ggdb3 -std=gnu99 \
+         -nostartfiles -nostdlib -Wall $(OPTIMIZATION) -m64 -ggdb3 -std=gnu99 \
          -I. $(shell find . -type d -not -path '*/\.*' -exec echo -I{} \;)
 
-LDFLAGS = -m elf_x86_64 -O2 -nostdlib -g -T x86D.ld -o $(OUTPUT)
+LDFLAGS = -m elf_x86_64 $(OPTIMIZATION) -nostdlib -g -T x86D.ld -o $(OUTPUT)
 
 ASFLAGS = -ggdb3 --64 $(ASM_SRC) -o $(ASM_OBJ)
 
