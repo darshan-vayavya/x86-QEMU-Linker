@@ -53,7 +53,9 @@ OPTIMIZATION = 	-falign-functions=16 -falign-jumps=16 -falign-loops=16 \
 								-findirect-inlining -fipa-cp -fipa-bit-cp -fipa-vrp -fipa-sra \
 								-fipa-icf -fisolate-erroneous-paths-dereference -flra-remat \
 								-foptimize-sibling-calls -foptimize-strlen -fpartial-inlining \
-								-fpeephole2 -freorder-blocks-algorithm=stc -freorder-blocks-and-partition -freorder-functions -frerun-cse-after-loop  -fsched-interblock \
+								-fpeephole2 -freorder-blocks-algorithm=stc \
+								-freorder-blocks-and-partition -freorder-functions \
+								-frerun-cse-after-loop  -fsched-interblock \
 								-fsched-spec -fschedule-insns -fschedule-insns2 -fstore-merging \
 								-fstrict-aliasing -fstrict-overflow -ftree-builtin-call-dce \
 								-ftree-switch-conversion -ftree-tail-merge -fcode-hoisting \
