@@ -57,6 +57,13 @@ dkms.conf
 # isodir
 isodir/
 
+# Test Code
+test/
+target/
+
+# Logs
+*.log
+
 # Boot Images
 boot*.*
 kernel*
