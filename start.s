@@ -123,9 +123,9 @@ start_main:
 .align 4096
 
 gdt_64:
-    .quad 0x0000000000000000   # Null descriptor
-    .quad 0x00A09A0000000000   # 64-bit code segment
-    .quad 0x00A0920000000000   # 64-bit data segment
+    .quad 0x0000000000000000  # Null descriptor
+    .quad 0x00AF9A000000FFFF  # Code segment: Present, G=1, L=1, DPL=0, executable
+    .quad 0x00AF92000000FFFF  # Data segment: Present, G=1, writable
 
 gdt_descriptor_64:
     .word (gdt_end_64 - gdt_64 - 1)

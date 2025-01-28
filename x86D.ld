@@ -17,23 +17,23 @@ SECTIONS {
     /* Define the start of the memory layout */
     /* .text section holds the kernel code */
     . = 2M;  /* Set the entry point address */
-    .text BLOCK(4K) : ALIGN(4K) {
+    .text : ALIGN(4K) {
         *(.multiboot)  /* Include the Multiboot header */
         *(.text)       /* Collect all .text sections from object files */
     }
 
     /* .rodata section holds read-only data like constants */
-    .rodata BLOCK(4K) : ALIGN(4K) {
+    .rodata : ALIGN(4K) {
         *(.rodata)    /* Collect all .rodata sections from object files */
     }
 
     /* .data section holds initialized global and static variables */
-    .data BLOCK(4K) : ALIGN(4K) {
+    .data : ALIGN(4K) {
         *(.data)      /* Collect all .data sections from object files */
     }
 
     /* .bss section holds uninitialized global and static variables */
-    .bss BLOCK(4K) : ALIGN(4K) {
+    .bss : ALIGN(4K) {
         __bss_start = .;  /* Mark the start of the bss segment */
         *(.bss)       /* Collect all .bss sections */
         *(COMMON)     /* Include uninitialized global variables */

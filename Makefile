@@ -45,21 +45,19 @@ OPTIMIZATION = 	-falign-functions=16 -falign-jumps=16 -falign-loops=16 \
 								-ftree-dominator-opts -ftree-forwprop -ftree-phiprop \
 								-ftree-pta -ftree-scev-cprop -ftree-sink -ftree-slsr -fno-inline \
 								-ftree-sra -ftree-ter -funit-at-a-time -fno-omit-frame-pointer \
-								-falign-functions -falign-jumps \
-								-fcaller-saves -fcrossjumping -fcse-follow-jumps \
-								-fcse-skip-blocks -fdelete-null-pointer-checks -fdevirtualize \
-								-fdevirtualize-speculatively -fexpensive-optimizations -fgcse \
-								-fgcse-lm  -fhoist-adjacent-loads -finline-small-functions \
+								-falign-functions -falign-jumps -fcaller-saves -fcrossjumping \
+								-fcse-follow-jumps -fcse-skip-blocks -fdelete-null-pointer-checks \
+								-fdevirtualize -fdevirtualize-speculatively  -fcode-hoisting \
+								-fgcse -fgcse-lm  -fhoist-adjacent-loads -finline-small-functions \
 								-findirect-inlining -fipa-cp -fipa-bit-cp -fipa-vrp -fipa-sra \
 								-fipa-icf -fisolate-erroneous-paths-dereference -flra-remat \
 								-foptimize-sibling-calls -foptimize-strlen -fpartial-inlining \
-								-fpeephole2 -freorder-blocks-algorithm=stc \
-								-freorder-blocks-and-partition -freorder-functions \
-								-frerun-cse-after-loop  -fsched-interblock \
+								-fpeephole2 -freorder-blocks-algorithm=stc -ftree-tail-merge \
+								-freorder-blocks-and-partition -freorder-functions  -fipa-ra \
+								-frerun-cse-after-loop  -fsched-interblock  -ftree-vrp -ffixed-rax \
 								-fsched-spec -fschedule-insns -fschedule-insns2 -fstore-merging \
 								-fstrict-aliasing -fstrict-overflow -ftree-builtin-call-dce \
-								-ftree-switch-conversion -ftree-tail-merge -fcode-hoisting \
-								-ftree-pre -ftree-vrp -fipa-ra
+								-ftree-switch-conversion -ftree-pre -fexpensive-optimizations
 								
 
 CFLAGS = -ffreestanding -fcf-protection=none -mno-shstk -fno-PIE \
