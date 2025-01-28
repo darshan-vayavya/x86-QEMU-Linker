@@ -116,6 +116,15 @@ start_main:
 
 # Call C main function
     call main
+
+.code32
+end:
+    # Load the value 0x2000 into the AX register
+    movw $0x2000, %ax       # Load 0x2000 into AX register
+    # Load destination on dx register
+    movw $0x604, %dx
+    # Send the value in AX to port 0x604 using the 'out' instruction
+    outw %ax, %dx        # Write the value in AX to port 0x604
     hlt
 
 # GDT Section
