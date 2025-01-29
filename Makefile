@@ -33,7 +33,8 @@ LOGFILE=./x86.log
 # Compiler flags
 GDB = -ggdb3
 TUNE = -mtune=generic #-march=generic
-OPTIMIZATION = 	-falign-functions=16 -falign-jumps=16 -falign-loops=16 \
+OPTIMIZATION = 	-ffixed-rax
+OPTIMIZATION_FULL = 	-falign-functions=16 -falign-jumps=16 -falign-loops=16 \
 								-fauto-inc-dec -fcprop-registers -fdce -fdefer-pop \
 								-fno-strict-aliasing -fno-tree-dse -fno-tree-fre \
 								-fno-rename-registers -fno-prefetch-loop-arrays \
