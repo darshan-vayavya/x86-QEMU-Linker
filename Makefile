@@ -25,6 +25,8 @@ CPU = qemu64
 MEM = 1.2G # For 3 GB Memory
 CORES = 1 # For single core - max 4 cores recommended
 QEMU_GDB = -s -S # GDB Flags - No need to keep if not required
+DISP =# This is for -nographic flag - added when using make DISPLAY=-nographic run
+DEVICES =# For devices attached
 XHCI_PCI_ADDR = 05.0 # Bus 0, Device 5, Function 0
 LOGFILE=./x86.log
 
@@ -72,7 +74,6 @@ ASFLAGS = $(GDB) --64 $(ASM_SRC) -o $(ASM_OBJ)
 
 # Default target to build the binary
 all: $(OUTPUT)
-	bash createBootable.sh
 
 # Rule to compile assembly file into an object file
 $(ASM_OBJ): $(ASM_SRC)
@@ -85,12 +86,13 @@ $(C_OBJS): %.o: %.c
 # Rule to link object files into an ELF binary
 $(OUTPUT): $(ASM_OBJ) $(C_OBJS)
 	$(LD) $(LDFLAGS) $(ASM_OBJ) $(C_OBJS)
+	bash createBootable.sh
 
 # Run the final image using QEMU
-run: $(OUTPUT)
+run: $(OUTPUT) $(BOOT_IMG)
 	$(QEMU) -drive file=$(BOOT_IMG),format=raw -m $(MEM) -smp $(CORES) \
-		 			-cpu $(CPU) -no-reboot $(QEMU_GDB) \
-					-device qemu-xhci,addr=$(XHCI_PCI_ADDR) \
+		 			-cpu $(CPU) -no-reboot $(QEMU_GDB)$(DISP) \
+					-device qemu-xhci,addr=$(XHCI_PCI_ADDR) $(DEVICES) \
 					-d guest_errors,trace:usb_xhci*,trace:usb_dwc* -D $(LOGFILE)
 
 # Clean up the generated files
