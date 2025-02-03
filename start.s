@@ -101,6 +101,7 @@ _start:
     mov $0x83, %eax            # Present + R/W + 2MB
     mov $512, %ecx             # 512 entries = 2MB * 512 = 1GB
 
+1:
     mov %eax, (%edi)
     add $0x200000, %eax        # Next 2MB physical address
     add $8, %edi               # Next PD entry
