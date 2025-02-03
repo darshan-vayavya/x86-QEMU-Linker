@@ -56,11 +56,53 @@ In modern x86 processors, **long mode** (64-bit mode) offers several advantages 
 - **Larger Address Space:** Long mode allows access to a far larger address space (up to 256TB), whereas 32-bit systems are limited to 4GB of addressable memory.
 - **Simplified Segmentation:** Long mode uses a flat memory model, so the need for segment descriptors (which are used in 16-bit and 32-bit modes) is minimized, simplifying memory management.
 
-## 5. **Disabling Virtual Memory (Paging)**
+## ~~5. **Disabling Virtual Memory (Paging)**~~
 
-Virtual memory is a system in which the physical memory is abstracted into a larger address space using a mechanism called **paging**. However, for a bare-metal system running directly on hardware (without an OS), **paging** and **virtual memory** management are not needed. In fact, enabling paging could complicate direct access to physical memory, such as the memory-mapped I/O region for **xHCI** or other peripherals.
+~~Virtual memory is a system in which the physical memory is abstracted into a larger address space using a mechanism called **paging**. However, for a bare-metal system running directly on hardware (without an OS), **paging** and **virtual memory** management are not needed. In fact, enabling paging could complicate direct access to physical memory, such as the memory-mapped I/O region for **xHCI** or other peripherals.~~
 
-- **Disabling Paging:** In the assembly code, the transition to long mode happens without enabling **paging**. This ensures that physical addresses are directly mapped and used by the CPU, rather than being translated through a page table.
+~~- **Disabling Paging:** In the assembly code, the transition to long mode happens without enabling **paging**. This ensures that physical addresses are directly mapped and used by the CPU, rather than being translated through a page table.~~
+
+## 5. **Paging - Identity Mapped Paging**
+>
+> x86-64 specifications needs us to enable paging to truly enter 64-bit LONG mode. (References: [1](https://stackoverflow.com/questions/70609634/is-it-possible-to-enter-long-mode-without-setting-up-paging), [2](https://wiki.osdev.org/X86-64#How_do_I_enable_Long_Mode_?:~:text=The%20steps%20for%20enabling%20long%20mode), [3](https://www.intel.com/content/dam/www/public/us/en/documents/manuals/64-ia-32-architectures-software-developer-vol-3a-part-1-manual.pdf#page=323), [4](https://wiki.osdev.org/Paging#64-Bit_Paging:~:text=jne%20.fill_table-,64%2DBit%20Paging,-Page%20map%20table))
+
+### **What is Identity-Mapped Paging?**
+
+**Identity mapping** is a type of memory mapping where **virtual addresses are directly mapped to the same physical addresses**. In other words, the virtual address space and physical address space are identical.
+
+#### **Why Use Identity Mapping?**
+
+1. **Simplifies Address Translation:** Since virtual addresses map directly to physical addresses, there's no translation overhead in understanding where memory is.
+2. **Useful in Bare-Metal Systems:** In bootloaders and simple kernel setups, identity mapping makes it easier to manage system memory without complex virtual memory schemes.
+
+### **Why is Paging Still Required in Long Mode?**
+
+The x86-64 architecture **requires paging** to enter and stay in **long mode**, even if you're only running a flat memory model. Without paging, the CPU won't recognize 64-bit instructions.
+
+By using identity mapping, you essentially "cheat" the system — paging is technically enabled, but the translation looks like it's disabled because virtual addresses are the same as physical addresses.
+
+### **Basic Page Table Structure**
+
+In x86-64 with paging enabled, the memory management unit (MMU) expects four levels of page tables:
+
+1. **PML4 (Page Map Level 4) Table**  
+   Points to entries in the PDPT (Page Directory Pointer Table).
+
+2. **PDPT (Page Directory Pointer Table)**  
+   Points to entries in the Page Directory Table.
+
+3. **PD (Page Directory)**  
+   Can point directly to 2MB memory regions if using large pages (flag `PS = 1`).
+
+4. **PT (Page Table)**  
+   Points to individual 4KB pages if using finer-grained paging.
+
+### **How Does This Achieve Identity Mapping?**
+
+When the MMU translates addresses:
+
+- The virtual address `0x0000000000000000` will map to the physical address `0x0000000000000000` because we set up the page table entries to reflect this mapping.
+- There is no difference between virtual and physical addresses.
 
 ## 6. **GCC and Building the Bare-Metal System**
 
