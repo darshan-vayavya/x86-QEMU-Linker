@@ -20,7 +20,7 @@ LD = ld
 AS = as
 
 # QEMU and Its Arguments
-QEMU = qemu-system-x86_64
+QEMU = qemu-system-i386
 CPU = qemu64
 MEM = 1.2G # For 3 GB Memory
 CORES = 1 # For single core - max 4 cores recommended
@@ -33,13 +33,41 @@ LOGFILE=./x86.log
 # Compiler flags
 GDB = -ggdb3
 TUNE = -mtune=generic #-march=generic
-OPTIMIZATION = 	-ffixed-rax
+OPTIMIZATIONS = # Nothing
+OPTIMIZATION = 	-falign-functions=16 -falign-jumps=16 -falign-loops=16 \
+								-fauto-inc-dec -fcprop-registers -fdce -fdefer-pop \
+								-fno-strict-aliasing -fno-tree-dse -fno-tree-fre \
+								-fno-rename-registers -fno-prefetch-loop-arrays \
+								-fcompare-elim -fcprop-registers -fdce -fdefer-pop \
+								-fdse -fforward-propagate -fif-conversion -fif-conversion2 \
+								-fipa-modref -fipa-profile -fipa-pure-const -fipa-reference \
+								-fipa-reference-addressable -fmove-loop-invariants \
+								-fno-reorder-blocks -fshrink-wrap-separate -fsplit-wide-types \
+								-fssa-backprop -fssa-phiopt -ftree-bit-ccp -ftree-ccp \
+								-ftree-ch -ftree-coalesce-vars -ftree-copy-prop -ftree-dce \
+								-ftree-dominator-opts -ftree-forwprop -ftree-phiprop \
+								-ftree-pta -ftree-scev-cprop -ftree-sink -ftree-slsr -fno-inline \
+								-ftree-sra -ftree-ter -funit-at-a-time -fno-omit-frame-pointer \
+								-falign-functions -falign-jumps -fcaller-saves -fcrossjumping \
+								-fcse-follow-jumps -fcse-skip-blocks -fdelete-null-pointer-checks \
+								-fdevirtualize -fdevirtualize-speculatively  -fcode-hoisting \
+								-fgcse -fgcse-lm  -fhoist-adjacent-loads -finline-small-functions \
+								-findirect-inlining -fipa-cp -fipa-bit-cp -fipa-vrp -fipa-sra \
+								-fipa-icf -fisolate-erroneous-paths-dereference -flra-remat \
+								-foptimize-sibling-calls -foptimize-strlen -fpartial-inlining \
+								-fpeephole2 -freorder-blocks-algorithm=stc -ftree-tail-merge \
+								-freorder-blocks-and-partition -freorder-functions  -fipa-ra \
+								-frerun-cse-after-loop  -fsched-interblock  -ftree-vrp -ffixed-rax \
+								-fsched-spec -fschedule-insns -fschedule-insns2 -fstore-merging \
+								-fstrict-aliasing -fstrict-overflow -ftree-builtin-call-dce \
+								-ftree-switch-conversion -ftree-pre -fexpensive-optimizations
+
 CFLAGS = -ffreestanding -fcf-protection=none -mno-shstk -fno-PIE \
-         -nostartfiles -nostdlib -Wall $(OPTIMIZATION) -m64 \
+         -nostartfiles -nostdlib -Wall $(OPTIMIZATION) -m32 \
 				 $(GDB) -std=gnu99 $(TUNE) \
          -I. $(shell find . -type d -not -path '*/\.*' -exec echo -I{} \;)
 
-LDFLAGS = -m elf_x86_64 -nostdlib -g -T x86D.ld -o $(OUTPUT)
+LDFLAGS = -m elf_i386 -nostdlib -g -T x86D.ld -o $(OUTPUT)
 
 ASFLAGS = $(GDB) --64 $(ASM_SRC) -o $(ASM_OBJ)
 
