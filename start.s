@@ -72,50 +72,49 @@ _boot_grub:
 .global _start
 .code32
 _start:
-    cli
-    mov $__stack_top, %esp
+    cli                         # Disable interrupts
+    
+    mov $__stack_top, %esp     # Setup stack
     mov %esp, %ebp
-    fninit
+    
+    fninit                     # Initialize FPU
 
-    # Clear page tables for heap range
+    # Setup page tables for identity mapping
+    # Clear page table areas
     mov $pml4_base, %edi
-    mov $0x1D369000, %eax    # HEAP_START
-    shr $39, %eax            # Get PML4 index
-    shl $3, %eax             # Multiply by 8 (entry size)
-    add %eax, %edi
-    mov $((0x19969000 >> 39) + 1), %ecx  # Number of entries needed
     xor %eax, %eax
+    mov $0x1000, %ecx
     rep stosl
 
-    # Initialize page tables for heap
-    mov $pml4_base, %edi
+    # PML4[0] -> PDPT
     mov $pdpt_base, %eax
-    or $0x3, %eax            # Present + R/W
-    mov %eax, (%edi)         # First 512GB
+    or $0x3, %eax              # Present + R/W
+    mov %eax, pml4_base
 
-    mov $pdpt_base, %edi
+    # PDPT[0] -> PD
     mov $pd_base, %eax
-    or $0x3, %eax
-    mov %eax, (%edi)         # First 1GB
+    or $0x3, %eax              # Present + R/W
+    mov %eax, pdpt_base
 
-    # Map 2MB pages for heap region
+    # Identity map first 4GB using 2MB pages
     mov $pd_base, %edi
-    mov $0x83, %eax          # Present + R/W + 2MB
-    mov $(0x19969000 >> 21), %ecx  # Number of 2MB pages needed
+    mov $0x83, %eax            # Present + R/W + 2MB
+    mov $512, %ecx             # 512 entries = 2MB * 512 = 1GB
+
 1:
     mov %eax, (%edi)
-    add $0x200000, %eax      # Next 2MB
-    add $8, %edi
+    add $0x200000, %eax        # Next 2MB physical address
+    add $8, %edi               # Next PD entry
     loop 1b
+
+    # Load PML4 address to CR3
+    mov $pml4_base, %eax
+    mov %eax, %cr3
 
     # Enable PAE
     mov %cr4, %eax
     or $0x20, %eax
     mov %eax, %cr4
-
-    # Load CR3
-    mov $pml4_base, %eax
-    mov %eax, %cr3
 
     # Enable Long Mode
     mov $0xC0000080, %ecx
@@ -125,27 +124,31 @@ _start:
 
     # Enable paging
     mov %cr0, %eax
-    or $0x80000001, %eax
+    or $0x80000001, %eax       # Paging + Protected Mode
     mov %eax, %cr0
 
+    # Load GDT
     lgdt (gdt_descriptor_64)
     
-    .byte 0xEA
-    .long long_mode_start
-    .word 0x08
+    # Far jump to 64-bit mode
+    .byte 0xEA                 # Far jump opcode
+    .long long_mode_start      # 32-bit offset
+    .word 0x08                 # Code segment selector
 
 .align 16
 .code64
 long_mode_start:
-    mov $0x10, %ax
+    mov $0x10, %ax            # Data segment
     mov %ax, %ds
     mov %ax, %es
     mov %ax, %fs
     mov %ax, %gs
     mov %ax, %ss
 
+    # Call main
     call main
 
+    # Port output
     movw $0x2000, %ax
     movw $0x604, %dx
     outw %ax, %dx
@@ -155,13 +158,13 @@ long_mode_start:
 .section .rodata
 .align 16
 gdt_64:
-    .quad 0
-    .quad 0x00AF9A000000FFFF
-    .quad 0x00AF92000000FFFF
+    .quad 0                    # Null descriptor
+    .quad 0x00AF9A000000FFFF  # Code segment
+    .quad 0x00AF92000000FFFF  # Data segment
     
 gdt_descriptor_64:
-    .word gdt_descriptor_64 - gdt_64 - 1
-    .quad gdt_64
+    .word gdt_descriptor_64 - gdt_64 - 1  # Limit
+    .quad gdt_64                          # Base
 
 .section .bss
 .align 4096
