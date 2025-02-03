@@ -21,8 +21,8 @@ if [ -f "boot.dsp" ]; then
   echo "Found boot.dsp"
 else
   echo "boot.dsp does not exist. Creating a new one"
-  # Create a blank disk of size 30 MB
-  dd if=/dev/zero of=boot.dsp bs=512K count=60
+  # Create a blank disk of size 40 MB
+  dd if=/dev/zero of=boot.dsp bs=512K count=80
   # Mount it
   sudo losetup /dev/loop69 boot.dsp
   # Create partition
@@ -32,8 +32,13 @@ y
 n
 1
 
-
++30MB
 8300
+n
+2
+
+
+EF02
 w
 y
 EOF
@@ -41,6 +46,7 @@ EOF
   sudo partprobe /dev/loop69
   # Format it
   sudo mkfs.ext4 /dev/loop69p1
+  sudo mkfs.vfat -F32 /dev/loop69p2
   # Mount partition to install grub
   sudo mount /dev/loop69p1 /mnt/boot
   sudo mkdir -p /mnt/boot/boot/grub
