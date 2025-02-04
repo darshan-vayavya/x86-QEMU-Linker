@@ -9,7 +9,7 @@
 
 HEAP_START = 0x1D369000;
 HEAP_SIZE = 0x19969000; /* ~430 MB */
-STACK_SIZE = 16384;
+STACK_SIZE = 65536; /* ~ 64 KiB */
 
 ENTRY(_start)    /* Entry point for the kernel */
 
@@ -48,7 +48,7 @@ SECTIONS {
     /* Stack section */
     .stack (NOLOAD) :  ALIGN(16)  {
         __stack_bottom = .;  /* Mark the start of the stack */
-        . = . + STACK_SIZE;       /* Allocate 16KiB for the stack (adjustable) */
+        . = . + STACK_SIZE;       /* Allocate 64KiB for the stack (adjustable) */
         __stack_top = .;      /* Mark the end of the stack */
     }
 
