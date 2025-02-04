@@ -86,11 +86,10 @@ $(C_OBJS): %.o: %.c
 # Rule to link object files into an ELF binary
 $(OUTPUT): $(ASM_OBJ) $(C_OBJS)
 	$(LD) $(LDFLAGS) $(ASM_OBJ) $(C_OBJS)
-	bash createBootable.sh
 
 # Run the final image using QEMU
 run: $(OUTPUT) $(BOOT_IMG)
-	$(QEMU) -drive file=$(BOOT_IMG),format=raw -m $(MEM) -smp $(CORES) \
+	$(QEMU) -kernel $(OUTPUT) -m $(MEM) -smp $(CORES) \
 		 			-cpu $(CPU) -no-reboot $(QEMU_GDB)$(DISP) \
 					-device qemu-xhci,addr=$(XHCI_PCI_ADDR) $(DEVICES) \
 					-d guest_errors,trace:usb_xhci*,trace:usb_dwc* -D $(LOGFILE)
