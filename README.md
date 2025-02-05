@@ -10,10 +10,11 @@ __  _| (_) |/ /_ | |_) | __ _ _ __ ___ _ __ ___   ___| |_ __ _| |  | | ___   ___
 
 ```
 
-A complete toolkit to run bare-metal code on x86 system using QEMU
+## A complete toolkit to run bare-metal code on x86 system using QEMU
+
 ---
 
-The project explores getting bare-metal C code to run on x86 system using [QEMU](). To learn more about the [x86 Support for QEMU](https://www.qemu.org/docs/master/system/target-i386.html).
+The project explores getting bare-metal C code to run on x86 system using [QEMU](https://www.qemu.org/). To learn more about the [x86 Support for QEMU](https://www.qemu.org/docs/master/system/target-i386.html).
 
 ## Implementation Specifics
 
