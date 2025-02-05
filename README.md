@@ -1,9 +1,19 @@
-# x86-QEMU-Linker
+# x86-QEMU-Baremetal
 
-A linker script to run bare-metal code on x86 system using QEMU
+```plaintext
+       ___    __  ____                                _        _ _______          _ _    _ _   
+      / _ \  / / |  _ \                              | |      | |__   __|        | | |  (_) |  
+__  _| (_) |/ /_ | |_) | __ _ _ __ ___ _ __ ___   ___| |_ __ _| |  | | ___   ___ | | | ___| |_ 
+\ \/ /> _ <| '_ \|  _ < / _` | '__/ _ \ '_ ` _ \ / _ \ __/ _` | |  | |/ _ \ / _ \| | |/ / | __|
+ >  <| (_) | (_) | |_) | (_| | | |  __/ | | | | |  __/ || (_| | |  | | (_) | (_) | |   <| | |_ 
+/_/\_\\___/ \___/|____/ \__,_|_|  \___|_| |_| |_|\___|\__\__,_|_|  |_|\___/ \___/|_|_|\_\_|\__|
+
+```
+
+A complete toolkit to run bare-metal code on x86 system using QEMU
 ---
 
-The project explores getting bare-metal C code to run on x86 system using [QEMU](). To learn more about the [x86 Support for QEMU](https://www.qemu.org/docs/master/system/target-i386.html) (via i440x PC), you can check the official website [here](https://www.qemu.org/docs/master/system/i386/pc.html)
+The project explores getting bare-metal C code to run on x86 system using [QEMU](). To learn more about the [x86 Support for QEMU](https://www.qemu.org/docs/master/system/target-i386.html).
 
 ## Implementation Specifics
 
