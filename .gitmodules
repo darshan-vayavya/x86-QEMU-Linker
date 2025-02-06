@@ -1,0 +1,3 @@
+[submodule "lib-pci-vga"]
+	path = lib-pci-vga
+	url = https://github.com/darshan-vayavya/baremetal-x86-qemu-pci-vga-lib.git

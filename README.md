@@ -1,9 +1,20 @@
-# x86-QEMU-Linker
+# x86-QEMU-Baremetal
 
-A linker script to run bare-metal code on x86 system using QEMU
+```plaintext
+       ___    __  ____                                _        _ _______          _ _    _ _   
+      / _ \  / / |  _ \                              | |      | |__   __|        | | |  (_) |  
+__  _| (_) |/ /_ | |_) | __ _ _ __ ___ _ __ ___   ___| |_ __ _| |  | | ___   ___ | | | ___| |_ 
+\ \/ /> _ <| '_ \|  _ < / _` | '__/ _ \ '_ ` _ \ / _ \ __/ _` | |  | |/ _ \ / _ \| | |/ / | __|
+ >  <| (_) | (_) | |_) | (_| | | |  __/ | | | | |  __/ || (_| | |  | | (_) | (_) | |   <| | |_ 
+/_/\_\\___/ \___/|____/ \__,_|_|  \___|_| |_| |_|\___|\__\__,_|_|  |_|\___/ \___/|_|_|\_\_|\__|
+
+```
+
+## A complete toolkit to run bare-metal code on x86 system using QEMU
+
 ---
 
-The project explores getting bare-metal C code to run on x86 system using [QEMU](). To learn more about the [x86 Support for QEMU](https://www.qemu.org/docs/master/system/target-i386.html) (via i440x PC), you can check the official website [here](https://www.qemu.org/docs/master/system/i386/pc.html)
+The project explores getting bare-metal C code to run on x86 system using [QEMU](https://www.qemu.org/). To learn more about the [x86 Support for QEMU](https://www.qemu.org/docs/master/system/target-i386.html).
 
 ## Implementation Specifics
 
@@ -31,15 +42,17 @@ The project explores getting bare-metal C code to run on x86 system using [QEMU]
 
 ## Build information
 
-- The code includes a *[Makefile](Makefile)* (A config used by the [Make](https://en.wikipedia.org/wiki/Make_(software)) tool) to build the system. The main program is named **main.c** by default (but can be changed in the Makefile).
+- The code includes a *[Makefile](Makefile)* (A config used by the [Make](https://en.wikipedia.org/wiki/Make_(software)) tool) to build the system. The main program is any file which has **main** function by default. There can be only one main function.
 
 - The code is built in steps - where the main is built as an [object](https://en.wikipedia.org/wiki/Object_file), then linked together using the linker and the startup code.
 
-- Finally, everything is properly built and a *x86-bare.bin* image is created. This image can now be run on QEMU.
+- Running `make` command should build an ELF (*x86-bare.dsp*). The command also runs a [script](createBootable.sh) that creates a grub-bootable image file (called by default as boot.img) which can be then loaded on QEMU to run the executable.
+
+> Note: The script will need to be run as sudo user since it does mounting and unmounting of the boot image file to load the elf.
 
 ## Running on QEMU
 
-To run the code on QEMU, simply use `-kernel x86-bare.dsp`
+To run the code on QEMU, simply use `make run`. If you want to customize the be
 
 ## Technical Document
 

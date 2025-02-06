@@ -1,91 +1,70 @@
-; Assembly code for x86 Machine start code.
-; Author: Darshan(@thisisthedarshan) <darshanp@vayavyalabs.com>
-; This assembly code is used to boot the bare-metal QEMU system to enable us to
-; run custom C code.
-; The C code is generated using GCC's x86 build tools. The Makefile is included
-; to build the binaries that can be run on QEMU's x86 system
-; The project assumes a RAM space of 1GB
+# Assembly code for x86 Machine start code.
+# Author: Darshan(@thisisthedarshan) <darshanp@vayavyalabs.com>
+# This assembly code is used to boot the bare-metal QEMU system to enable us to
+# run custom C code. The assembly code also includes test for qemu xHCI device
+# connected on PCI bus 
+# The C code is generated using GCC's x86 build tools. The Makefile is included
+# to build the image file that can be run on QEMU's x86 system..
+# The Assembly code is designed with multi-boot compliance
 
+.set ALIGN,    1<<0             # align loaded modules on page boundaries
+.set MEMINFO,  1<<1             # provide memory map
+.set FLAGS,    ALIGN | MEMINFO  # this is the Multiboot 'flag' field
+.set MAGIC,    0x1BADB002       # 'magic number' lets bootloader find the header
+.set CHECKSUM, -(MAGIC + FLAGS) # checksum of above, to prove we are multiboot
+.section .multiboot
+.align 4
+.global _boot_grub
+_boot_grub:
+    .long MAGIC
+    .long FLAGS
+    .long CHECKSUM
+# Multiboot headers - setup done
 
-    .global _start
-
-    ; Define constants 
-    %define GDT_ENTRY_COUNT 3
-    %define GDT_BASE 0x1000            /* GDT base address */
-    %define GDT_LIMIT 0xFFFF          /* GDT limit (64KB max for GDT) */
-    %define KERNEL_STACK_SIZE 0x2000  /* 8KB Stack size */
-    %define KERNEL_HEAP_SIZE 0x100000 /* 1MB Heap size */
-    %define RAM_SIZE 0x40000000       /* 1GB of RAM */
-
-    ; 64-bit entry point 
-    .section .text
+.section .text
+.global _start
+.code32
 _start:
-    ; Initialize GDT 
-    call init_gdt
+    cli                     # Disable interrupts
 
-    ; Load GDT 
-    lgdt [gdt_descriptor]
+    # Setup stack
+    mov $__stack_top, %esp
+    mov %esp, %ebp
+    
+    # Disable cache
+    mov %cr0, %eax
+    or $0x60000000, %eax   # Set CD and NW bits
+    mov %eax, %cr0
+    wbinvd                 # Flush cache
 
-    ; Switch to long mode 
-    call switch_to_long_mode
+    # Initialize FPU
+    fninit
 
-    ; Initialize stack and heap 
-    call init_stack
+    # Display welcome message
+    call display_boot
 
-    ; Jump to main function 
+    # Jump to main
     call main
 
-    ; Infinite loop to keep the system running 
-    hang:
-        jmp hang
+_end:
+    # Display end message
+    call display_end
 
-    ; GDT setup function 
-init_gdt:
-    ; GDT descriptor setup 
-    lidt [gdt_descriptor]   ; Load GDT descriptor 
+    # Close QEMU
+    movw $0x2000, %ax
+    movw $0x604, %dx
+    outw %ax, %dx
+    
+    # Safety barrier
+    hlt
 
-    ; GDT Table 
-    ; GDT entry 0: Null descriptor (unused)
-    dq 0x0000000000000000
-    ; GDT entry 1: Code segment (kernel code, ring 0, 64-bit)
-    dq 0x00CF9A000000FFFF
-    ; GDT entry 2: Data segment (kernel data, ring 0, 64-bit)
-    dq 0x00CF92000000FFFF
-
-    ; GDT descriptor (limit, base address) 
+.section .rodata
+.align 16
+gdt:
+    .quad 0
+    .quad 0x00CF9A000000FFFF  # 32-bit code
+    .quad 0x00CF92000000FFFF  # 32-bit data
+    
 gdt_descriptor:
-    dw GDT_LIMIT & 0xFFFF       /* Limit low */
-    dw (GDT_BASE & 0xFFFF)      /* Base low */
-    db (GDT_BASE >> 16) & 0xFF  /* Base middle byte */
-    db 0x00                     /* Access byte (ignore for now) */
-    db 0x00                     /* Granularity byte (ignore for now) */
-    db (GDT_BASE >> 24) & 0xFF  /* Base high byte */
-
-    ret
-
-; Switch to long mode (64-bit mode) 
-switch_to_long_mode:
-    ; Set 64-bit mode flag in EFLAGS (EFER.LME = 1)
-    mov eax, cr0
-    or eax, 0x80000000     ; Set the long mode flag (bit 31) in CR0
-    mov cr0, eax
-
-    ; Enable paging and 64-bit mode
-    mov eax, 0xC0000080   ; MSR for EFER
-    rdmsr
-    or eax, 0x00000100    ; Enable long mode (EFER.LME = 1)
-    wrmsr
-
-    ; Switch to 64-bit mode (requires a jump to a 64-bit address)
-    jmp 0x08:long_mode     ; Far jump to 64-bit code segment
-
-long_mode:
-    ; Now in 64-bit mode (long mode), continue initialization
-    ret
-
-; Initialize stack for the kernel 
-init_stack:
-    ; Setup stack pointer for the kernel
-    mov rsp, 0x2000        ; Set the stack pointer to the top of the kernel stack (8KB)
-
-    ret
+    .word gdt_descriptor - gdt - 1
+    .long gdt
