@@ -64,7 +64,7 @@ $(OUTPUT): $(ASM_OBJ) $(C_OBJS)
 run: $(OUTPUT) $(BOOT_IMG)
 	$(QEMU) -kernel $(OUTPUT) -m $(MEM) -smp $(CORES) \
 		 			-cpu $(CPU) -no-reboot $(QEMU_GDB)$(DISP) \
-					-device qemu-xhci,addr=$(XHCI_PCI_ADDR) $(DEVICES) \
+					-device nec-usb-xhci,id=xhci,addr=$(XHCI_PCI_ADDR) $(DEVICES) \
 					-d guest_errors,trace:usb_xhci*,trace:usb_dwc* -D $(LOGFILE)
 
 # Clean up the generated files
