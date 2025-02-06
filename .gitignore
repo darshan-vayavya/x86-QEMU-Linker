@@ -69,3 +69,5 @@ target*/
 boot*.*
 kernel*
 *.dsp
+
+c/
