@@ -37,10 +37,10 @@ OPTIMIZATIONS = # Nothing
 
 CFLAGS = -ffreestanding -fcf-protection=none -mno-shstk -fno-PIE \
          -nostartfiles -nostdlib -Wall $(OPTIMIZATION) -m32 \
-				 $(GDB) -std=gnu99 $(TUNE) \
+				 $(GDB) -std=gnu99 $(TUNE) -ffunction-sections -fdata-sections \
          -I. $(shell find . -type d -not -path '*/\.*' -exec echo -I{} \;)
 
-LDFLAGS = -m elf_i386 -nostdlib -g -T x86D.ld -o $(OUTPUT)
+LDFLAGS = -m elf_i386 -nostdlib -g -gc-sections -T x86D.ld -o $(OUTPUT)
 
 ASFLAGS = $(GDB) --64 $(ASM_SRC) -o $(ASM_OBJ)
 
